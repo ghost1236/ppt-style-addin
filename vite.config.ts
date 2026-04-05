@@ -11,11 +11,13 @@ function getHttpsConfig() {
   if (fs.existsSync(keyFile) && fs.existsSync(certFile)) {
     return { key: fs.readFileSync(keyFile), cert: fs.readFileSync(certFile) };
   }
-  return true; // vite 자체 자가서명 인증서 사용
+  return true;
 }
 
 export default defineConfig({
   plugins: [react()],
+  // GitHub Pages 배포 base 경로
+  base: '/ppt-style-addin/',
   server: {
     port: 3000,
     https: getHttpsConfig(),
@@ -23,8 +25,9 @@ export default defineConfig({
   build: {
     rollupOptions: {
       input: {
-        taskpane: path.resolve(__dirname, 'src/taskpane/index.html'),
-        commands: path.resolve(__dirname, 'src/commands/commands.html'),
+        // 빌드 입력: 루트 레벨 HTML → dist/taskpane/, dist/commands/ 구조 출력
+        taskpane: path.resolve(__dirname, 'taskpane/index.html'),
+        commands: path.resolve(__dirname, 'commands/commands.html'),
       },
     },
     outDir: 'dist',
