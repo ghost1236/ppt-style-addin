@@ -1,0 +1,73 @@
+import type { StylePreset } from '../store/useStore';
+
+const STORAGE_KEY = 'ppt-style-addin-presets';
+
+/** Office.context.document.settings 에 프리셋 저장 */
+export async function savePresetsToSettings(presets: StylePreset[]): Promise<void> {
+  return new Promise((resolve, reject) => {
+    try {
+      Office.context.document.settings.set(STORAGE_KEY, JSON.stringify(presets));
+      Office.context.document.settings.saveAsync((result) => {
+        if (result.status === Office.AsyncResultStatus.Succeeded) {
+          resolve();
+        } else {
+          reject(new Error(result.error?.message ?? '저장 실패'));
+        }
+      });
+    } catch (e) {
+      reject(e);
+    }
+  });
+}
+
+/** Office.context.document.settings 에서 프리셋 불러오기 */
+export function loadPresetsFromSettings(): StylePreset[] {
+  try {
+    const raw = Office.context.document.settings.get(STORAGE_KEY);
+    if (!raw) return [];
+    return JSON.parse(raw) as StylePreset[];
+  } catch {
+    return [];
+  }
+}
+
+/** JSON 파일로 내보내기 */
+export function exportPresetsAsJson(presets: StylePreset[]): void {
+  const json = JSON.stringify(presets, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'ppt-style-presets.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/** JSON 파일에서 불러오기 */
+export function importPresetsFromJson(): Promise<StylePreset[]> {
+  return new Promise((resolve, reject) => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return reject(new Error('파일 없음'));
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        try {
+          const data = JSON.parse(ev.target?.result as string) as StylePreset[];
+          resolve(data);
+        } catch {
+          reject(new Error('유효하지 않은 JSON 파일입니다'));
+        }
+      };
+      reader.readAsText(file);
+    };
+    input.click();
+  });
+}
+
+/** 고유 ID 생성 */
+export function generateId(): string {
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+}
