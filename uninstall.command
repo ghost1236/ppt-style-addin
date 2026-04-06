@@ -1,25 +1,29 @@
 #!/bin/bash
+# PPT 디자인 도구 제거 (macOS)
+
+WEF_DIR="$HOME/Library/Containers/com.microsoft.Powerpoint/Data/Documents/wef"
 
 echo ""
-echo "======================================"
-echo "  PPT 디자인 도구 Add-in 제거"
-echo "======================================"
+echo "========================================="
+echo "  PPT 디자인 도구 제거 (macOS)"
+echo "========================================="
 echo ""
 
-MANIFEST_PATH="$HOME/Library/Containers/com.microsoft.Powerpoint/Data/Documents/wef/ppt-style-addin.xml"
-if [ -f "$MANIFEST_PATH" ]; then
-    rm "$MANIFEST_PATH"
-    echo "✅ Add-in 등록 해제됨"
-else
-    echo "ℹ️  등록된 Add-in 없음"
-fi
+echo "[1/2] PowerPoint 종료 중..."
+osascript -e 'tell application "Microsoft PowerPoint" to quit' 2>/dev/null
+sleep 2
+
+echo "[2/2] 애드인 제거 중..."
+rm -f "$WEF_DIR"/a1b2c3d4-e5f6-7890-abcd-ef1234567890.manifest.xml
+rm -f "$WEF_DIR"/manifest.xml
+echo "       제거 완료"
 
 echo ""
-echo "======================================"
-echo "  ✅ 제거 완료"
-echo "======================================"
+echo "========================================="
+echo "  제거 완료!"
+echo "========================================="
 echo ""
-echo "PowerPoint를 재시작하면 Add-in이 사라집니다."
+echo "  PowerPoint를 다시 열면"
+echo "  디자인 도구가 사라집니다."
 echo ""
-
-read -p "Enter를 눌러 창을 닫으세요..."
+read -n 1 -s -r -p "아무 키나 누르면 종료합니다..."
