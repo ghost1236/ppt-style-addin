@@ -95,7 +95,7 @@ export const useStore = create<StoreState>((set, get) => ({
     alignment: 'left',
     lineSpacing: 1.5,
   },
-  applyTarget: 'current-all',
+  applyTarget: 'all-all',
   presets: [],
   undoStack: [],
   activeTab: 'editor',

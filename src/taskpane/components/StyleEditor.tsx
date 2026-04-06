@@ -13,6 +13,7 @@ import {
   useToastController,
   Toaster,
   useId,
+  Divider,
 } from '@fluentui/react-components';
 import {
   TextBoldRegular,
@@ -24,6 +25,7 @@ import {
   TextAlignJustifyRegular,
   ArrowUndoRegular,
   SaveRegular,
+  CheckmarkRegular,
 } from '@fluentui/react-icons';
 import { useStore } from '../../store/useStore';
 import { ColorPicker } from './ColorPicker';
@@ -36,19 +38,19 @@ const useStyles = makeStyles({
     padding: '12px',
     display: 'flex',
     flexDirection: 'column',
-    gap: '12px',
+    gap: '10px',
   },
   section: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '8px',
+    gap: '6px',
   },
   sectionTitle: {
     fontSize: tokens.fontSizeBase200,
     fontWeight: tokens.fontWeightSemibold,
     color: tokens.colorNeutralForeground3,
-    borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
-    paddingBottom: '4px',
+    textTransform: 'uppercase' as const,
+    letterSpacing: '0.5px',
   },
   row: {
     display: 'flex',
@@ -56,26 +58,40 @@ const useStyles = makeStyles({
     gap: '8px',
   },
   label: {
-    width: '52px',
+    width: '44px',
     fontSize: tokens.fontSizeBase200,
     color: tokens.colorNeutralForeground2,
     flexShrink: 0,
+  },
+  fontSelect: {
+    flex: 1,
+    minWidth: 0,
   },
   sizeInput: {
     width: '70px',
   },
   toggleGroup: {
     display: 'flex',
-    gap: '4px',
+    gap: '2px',
   },
   alignGroup: {
     display: 'flex',
-    gap: '4px',
+    gap: '2px',
   },
   lineSpacingInput: {
     width: '70px',
   },
-  actions: {
+  preview: {
+    padding: '8px 12px',
+    borderRadius: tokens.borderRadiusMedium,
+    backgroundColor: tokens.colorNeutralBackground3,
+    border: `1px solid ${tokens.colorNeutralStroke2}`,
+    textAlign: 'center' as const,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap' as const,
+  },
+  applySection: {
     display: 'flex',
     gap: '8px',
     paddingTop: '4px',
@@ -83,68 +99,37 @@ const useStyles = makeStyles({
   applyBtn: {
     flex: 1,
   },
-  undoRow: {
-    display: 'flex',
-    justifyContent: 'flex-end',
+  undoBtn: {
+    flexShrink: 0,
   },
 });
 
-/** 감지할 폰트 후보 목록 (한글 + 영문 + 시스템) */
 const FONT_CANDIDATES = [
-  // 한글 폰트
-  'Malgun Gothic', '맑은 고딕',
-  'Pretendard',
+  'Malgun Gothic', '맑은 고딕', 'Pretendard',
   '나눔고딕', 'NanumGothic', '나눔고딕코딩',
-  '나눔명조', 'NanumMyeongjo',
-  '나눔바른고딕', 'NanumBarunGothic',
+  '나눔명조', 'NanumMyeongjo', '나눔바른고딕', 'NanumBarunGothic',
   '나눔스퀘어', 'NanumSquare', 'NanumSquareRound',
-  '돋움', 'Dotum', '굴림', 'Gulim',
-  '바탕', 'Batang', '궁서', 'Gungsuh',
-  'Apple SD Gothic Neo',
-  'Noto Sans KR', 'Noto Serif KR',
-  '본고딕', 'Source Han Sans K',
-  '본명조', 'Source Han Serif K',
-  'Spoqa Han Sans Neo',
-  'IBM Plex Sans KR',
-  'KoPubWorldDotum', 'KoPubWorldBatang',
-  'Gmarket Sans',
-  'Noto Sans CJK KR',
-  '함초롬돋움', '함초롬바탕',
-  'D2Coding',
-  // 영문 폰트
+  '돋움', 'Dotum', '굴림', 'Gulim', '바탕', 'Batang', '궁서', 'Gungsuh',
+  'Apple SD Gothic Neo', 'Noto Sans KR', 'Noto Serif KR',
+  '본고딕', 'Source Han Sans K', '본명조', 'Source Han Serif K',
+  'Spoqa Han Sans Neo', 'IBM Plex Sans KR',
+  'KoPubWorldDotum', 'KoPubWorldBatang', 'Gmarket Sans',
+  'Noto Sans CJK KR', '함초롬돋움', '함초롬바탕', 'D2Coding',
   'Arial', 'Arial Black', 'Arial Narrow',
-  'Calibri', 'Calibri Light',
-  'Cambria', 'Cambria Math',
-  'Times New Roman',
-  'Segoe UI', 'Segoe UI Light', 'Segoe UI Semibold',
-  'Verdana', 'Tahoma', 'Trebuchet MS',
-  'Georgia',
-  'Helvetica', 'Helvetica Neue',
-  'Garamond',
-  'Palatino', 'Palatino Linotype', 'Book Antiqua',
-  'Century Gothic',
-  'Franklin Gothic Medium',
-  'Lucida Sans', 'Lucida Console',
-  'Consolas', 'Courier New',
-  'Impact',
-  'Comic Sans MS',
-  'Candara', 'Constantia', 'Corbel',
-  'Rockwell',
-  'Futura',
-  'Avenir', 'Avenir Next',
-  'Gill Sans', 'Gill Sans MT',
-  'Optima',
-  'San Francisco', 'SF Pro Display', 'SF Pro Text',
-  'Roboto', 'Open Sans', 'Lato', 'Montserrat', 'Poppins',
-  'Inter',
+  'Calibri', 'Calibri Light', 'Cambria',
+  'Times New Roman', 'Segoe UI', 'Verdana', 'Tahoma', 'Trebuchet MS',
+  'Georgia', 'Helvetica', 'Helvetica Neue', 'Garamond',
+  'Palatino', 'Century Gothic', 'Franklin Gothic Medium',
+  'Lucida Sans', 'Consolas', 'Courier New', 'Impact',
+  'Candara', 'Constantia', 'Corbel', 'Rockwell',
+  'Futura', 'Avenir', 'Avenir Next', 'Gill Sans', 'Optima',
+  'Roboto', 'Open Sans', 'Lato', 'Montserrat', 'Poppins', 'Inter',
   'Aptos', 'Aptos Display',
 ];
 
-/** document.fonts.check()로 설치된 폰트 감지 */
 function detectAvailableFonts(): string[] {
   const available: string[] = [];
   const seen = new Set<string>();
-
   for (const font of FONT_CANDIDATES) {
     if (seen.has(font.toLowerCase())) continue;
     try {
@@ -152,11 +137,8 @@ function detectAvailableFonts(): string[] {
         available.push(font);
         seen.add(font.toLowerCase());
       }
-    } catch {
-      // ignore
-    }
+    } catch { /* ignore */ }
   }
-
   return available.length > 0 ? available : ['Arial', 'Calibri', 'Malgun Gothic'];
 }
 
@@ -170,50 +152,33 @@ export function StyleEditor() {
   const [availableFonts, setAvailableFonts] = useState<string[]>([]);
 
   useEffect(() => {
-    // 폰트 감지는 document.fonts가 준비된 후 실행
     if (document.fonts?.ready) {
-      document.fonts.ready.then(() => {
-        setAvailableFonts(detectAvailableFonts());
-      });
+      document.fonts.ready.then(() => setAvailableFonts(detectAvailableFonts()));
     } else {
       setAvailableFonts(detectAvailableFonts());
     }
   }, []);
 
   const {
-    currentFont,
-    currentParagraph,
-    applyTarget,
-    setCurrentFont,
-    setCurrentParagraph,
-    pushUndo,
-    popUndo,
-    undoStack,
+    currentFont, currentParagraph, applyTarget,
+    setCurrentFont, setCurrentParagraph,
+    pushUndo, popUndo, undoStack,
   } = useStore();
 
   const lineSpacingSupported = hasLineSpacingSupport();
 
   function showToast(message: string, intent: 'success' | 'warning' | 'error' = 'success') {
     dispatchToast(
-      <Toast>
-        <ToastTitle>{message}</ToastTitle>
-      </Toast>,
+      <Toast><ToastTitle>{message}</ToastTitle></Toast>,
       { intent, position: 'bottom' }
     );
   }
-
-  const undoSupported = applyTarget !== 'selection-text' && applyTarget !== 'selection-shape';
 
   async function handleApply() {
     setIsApplying(true);
     try {
       const shapes = await captureSnapshot(applyTarget);
-      pushUndo({
-        timestamp: Date.now(),
-        description: `스타일 적용: ${applyTarget}`,
-        shapes,
-      });
-
+      pushUndo({ timestamp: Date.now(), description: `스타일 적용: ${applyTarget}`, shapes });
       await applyStyle(
         applyTarget,
         { font: currentFont, paragraph: currentParagraph },
@@ -230,12 +195,10 @@ export function StyleEditor() {
   async function handleUndo() {
     const entry = popUndo();
     if (!entry) return;
-
     if (entry.shapes.length === 0) {
       showToast('선택 범위 적용은 실행 취소가 지원되지 않습니다', 'warning');
       return;
     }
-
     setIsUndoing(true);
     try {
       await restoreSnapshot(entry.shapes);
@@ -247,17 +210,36 @@ export function StyleEditor() {
     }
   }
 
+  // 미리보기 스타일
+  const previewStyle: React.CSSProperties = {
+    fontFamily: currentFont.name || 'inherit',
+    fontSize: Math.min(currentFont.size || 18, 28) + 'px',
+    fontWeight: currentFont.bold ? 'bold' : 'normal',
+    fontStyle: currentFont.italic ? 'italic' : 'normal',
+    textDecoration: currentFont.underline ? 'underline' : 'none',
+    color: currentFont.color || '#333333',
+    textAlign: (currentParagraph.alignment || 'left') as React.CSSProperties['textAlign'],
+  };
+
   return (
     <div className={styles.container}>
       <Toaster toasterId={toasterId} />
 
-      {/* 폰트 섹션 */}
+      {/* 미리보기 */}
+      <div className={styles.preview} style={previewStyle}>
+        미리보기 Preview
+      </div>
+
+      <Divider />
+
+      {/* 폰트 */}
       <div className={styles.section}>
         <div className={styles.sectionTitle}>폰트</div>
 
         <div className={styles.row}>
-          <Label className={styles.label}>폰트명</Label>
+          <Label className={styles.label}>글꼴</Label>
           <Select
+            className={styles.fontSelect}
             value={currentFont.name ?? 'Malgun Gothic'}
             onChange={(_, d) => setCurrentFont({ name: d.value })}
             size="small"
@@ -280,10 +262,6 @@ export function StyleEditor() {
             max={400}
             contentAfter={<span>pt</span>}
           />
-        </div>
-
-        <div className={styles.row}>
-          <Label className={styles.label}>스타일</Label>
           <div className={styles.toggleGroup}>
             <ToggleButton
               size="small"
@@ -318,7 +296,9 @@ export function StyleEditor() {
         </div>
       </div>
 
-      {/* 단락 섹션 */}
+      <Divider />
+
+      {/* 단락 */}
       <div className={styles.section}>
         <div className={styles.sectionTitle}>단락</div>
 
@@ -345,9 +325,6 @@ export function StyleEditor() {
               />
             ))}
           </div>
-        </div>
-
-        <div className={styles.row}>
           <Label className={styles.label}>줄간격</Label>
           <Tooltip
             content={lineSpacingSupported ? '' : '이 기능은 Microsoft 365에서만 지원됩니다'}
@@ -363,41 +340,42 @@ export function StyleEditor() {
               max={5}
               step={0.1}
               disabled={!lineSpacingSupported}
-              contentAfter={<span>배</span>}
+              contentAfter={<span>x</span>}
             />
           </Tooltip>
         </div>
       </div>
 
-      {/* 실행 취소 */}
-      <div className={styles.undoRow}>
-        <Button
-          size="small"
-          icon={<ArrowUndoRegular />}
-          disabled={undoStack.length === 0 || isUndoing}
-          onClick={handleUndo}
-        >
-          {isUndoing ? '복원 중...' : `실행취소 (${undoStack.length})`}
-        </Button>
-      </div>
+      <Divider />
 
       {/* 적용 버튼 */}
-      <div className={styles.actions}>
+      <div className={styles.applySection}>
         <Button
           className={styles.applyBtn}
           appearance="primary"
+          icon={<CheckmarkRegular />}
           onClick={handleApply}
           disabled={isApplying}
+          size="medium"
         >
-          {isApplying ? '적용 중...' : '현재 선택에 적용'}
+          {isApplying ? '적용 중...' : '적용'}
         </Button>
         <Button
           icon={<SaveRegular />}
           onClick={() => setShowPresetModal(true)}
-          title="프리셋으로 저장"
+          title="프리셋 저장"
+          size="medium"
         >
-          프리셋 저장
+          저장
         </Button>
+        <Button
+          className={styles.undoBtn}
+          icon={<ArrowUndoRegular />}
+          disabled={undoStack.length === 0 || isUndoing}
+          onClick={handleUndo}
+          title={`실행취소 (${undoStack.length})`}
+          size="medium"
+        />
       </div>
 
       {showPresetModal && (

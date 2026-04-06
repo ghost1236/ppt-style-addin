@@ -128,15 +128,13 @@ export default function App() {
         {activeTab === 'editor' ? <StyleEditor /> : <PresetList />}
       </div>
 
-      {/* 하단 환경 정보 */}
-      <div className={styles.footer}>
-        <InfoRegular fontSize={12} />
-        <span>
-          {isLegacyApi
-            ? `감지된 환경: PowerPoint 영구 라이선스 (일부 기능 제한)`
-            : `감지된 환경: Microsoft 365 (전체 기능 지원)`}
-        </span>
-      </div>
+      {/* 하단 환경 정보 (제한 모드일 때만 표시) */}
+      {isLegacyApi && (
+        <div className={styles.footer}>
+          <InfoRegular fontSize={12} />
+          <span>일부 기능이 제한될 수 있습니다</span>
+        </div>
+      )}
     </div>
   );
 }

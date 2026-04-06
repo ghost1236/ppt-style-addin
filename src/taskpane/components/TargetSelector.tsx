@@ -1,6 +1,5 @@
 import {
-  Radio,
-  RadioGroup,
+  Select,
   Label,
   makeStyles,
   tokens,
@@ -11,37 +10,25 @@ const useStyles = makeStyles({
   section: {
     padding: '8px 12px',
     borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
   },
   label: {
     fontSize: tokens.fontSizeBase200,
     fontWeight: tokens.fontWeightSemibold,
     color: tokens.colorNeutralForeground3,
-    marginBottom: '6px',
-    display: 'block',
-  },
-  radioGroup: {
-    gap: '2px',
-  },
-  groupLabel: {
-    fontSize: tokens.fontSizeBase100,
-    color: tokens.colorNeutralForeground3,
-    marginTop: '6px',
-    marginBottom: '2px',
-    display: 'block',
-    paddingLeft: '4px',
+    flexShrink: 0,
   },
 });
 
-const SELECTION_TARGETS: { value: ApplyTarget; label: string }[] = [
+const TARGETS: { value: ApplyTarget; label: string }[] = [
   { value: 'selection-text', label: '선택한 텍스트만' },
   { value: 'selection-shape', label: '선택한 텍스트 상자' },
-  { value: 'all-same-position', label: '선택한 위치 → 전체 슬라이드' },
-];
-
-const ALL_TARGETS: { value: ApplyTarget; label: string }[] = [
-  { value: 'all-titles', label: '모든 슬라이드 - 제목' },
-  { value: 'all-bodies', label: '모든 슬라이드 - 본문' },
-  { value: 'all-all', label: '모든 슬라이드 - 전체' },
+  { value: 'all-same-position', label: '같은 위치 → 전체 슬라이드' },
+  { value: 'all-titles', label: '전체 슬라이드 - 제목' },
+  { value: 'all-bodies', label: '전체 슬라이드 - 본문' },
+  { value: 'all-all', label: '전체 슬라이드 - 모든 텍스트' },
 ];
 
 export function TargetSelector() {
@@ -51,20 +38,15 @@ export function TargetSelector() {
   return (
     <div className={styles.section}>
       <Label className={styles.label}>적용 대상</Label>
-      <RadioGroup
+      <Select
         value={applyTarget}
         onChange={(_, d) => setApplyTarget(d.value as ApplyTarget)}
-        className={styles.radioGroup}
+        size="small"
       >
-        <span className={styles.groupLabel}>선택 영역</span>
-        {SELECTION_TARGETS.map((t) => (
-          <Radio key={t.value} value={t.value} label={t.label} />
+        {TARGETS.map((t) => (
+          <option key={t.value} value={t.value}>{t.label}</option>
         ))}
-        <span className={styles.groupLabel}>전체 슬라이드</span>
-        {ALL_TARGETS.map((t) => (
-          <Radio key={t.value} value={t.value} label={t.label} />
-        ))}
-      </RadioGroup>
+      </Select>
     </div>
   );
 }

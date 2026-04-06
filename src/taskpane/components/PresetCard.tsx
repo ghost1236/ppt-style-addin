@@ -19,18 +19,18 @@ import { PresetModal } from './PresetModal';
 
 const useStyles = makeStyles({
   card: {
-    marginBottom: '8px',
-    padding: '8px',
+    marginBottom: '6px',
+    padding: '8px 10px',
   },
   topRow: {
     display: 'flex',
     alignItems: 'center',
-    gap: '6px',
-    marginBottom: '6px',
+    gap: '4px',
+    marginBottom: '4px',
   },
   name: {
     fontWeight: tokens.fontWeightSemibold,
-    fontSize: tokens.fontSizeBase300,
+    fontSize: tokens.fontSizeBase200,
     flex: 1,
     overflow: 'hidden',
     textOverflow: 'ellipsis',
@@ -39,17 +39,14 @@ const useStyles = makeStyles({
   detail: {
     fontSize: tokens.fontSizeBase100,
     color: tokens.colorNeutralForeground3,
-    marginBottom: '4px',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
+    marginBottom: '2px',
   },
   colorDot: {
     display: 'inline-block',
-    width: '10px',
-    height: '10px',
+    width: '8px',
+    height: '8px',
     borderRadius: '50%',
-    marginRight: '4px',
+    marginRight: '3px',
     border: `1px solid ${tokens.colorNeutralStroke1}`,
     verticalAlign: 'middle',
   },
@@ -57,11 +54,11 @@ const useStyles = makeStyles({
     fontSize: tokens.fontSizeBase100,
     color: tokens.colorBrandForeground1,
     fontWeight: tokens.fontWeightSemibold,
-    marginBottom: '6px',
+    marginBottom: '4px',
   },
   actions: {
     display: 'flex',
-    gap: '4px',
+    gap: '3px',
     alignItems: 'center',
     flexWrap: 'wrap',
   },
@@ -89,83 +86,56 @@ export function PresetCard({ preset, onApply, onDelete, onAssignTitle, onAssignB
   )?.[0] ?? '';
 
   const badges: string[] = [];
-  if (titlePresetId === preset.id) badges.push('제목용');
-  if (bodyPresetId === preset.id) badges.push('본문용');
+  if (titlePresetId === preset.id) badges.push('제목');
+  if (bodyPresetId === preset.id) badges.push('본문');
   const slotNum = assignedSlot ? Number(assignedSlot) : 0;
-  if (slotNum > 0) badges.push(`프리셋 ${slotNum}`);
+  if (slotNum > 0) badges.push(`P${slotNum}`);
 
   const fontDetails = [
     preset.font.name,
     preset.font.size ? `${preset.font.size}pt` : null,
     preset.font.bold ? 'B' : null,
     preset.font.italic ? 'I' : null,
-  ]
-    .filter(Boolean)
-    .join(' · ');
+  ].filter(Boolean).join(' · ');
 
   return (
     <>
       <Card className={styles.card} size="small">
         <div className={styles.topRow}>
-          <Text className={styles.name}>🎨 {preset.name}</Text>
-          <Button
-            size="small"
-            icon={<EditRegular />}
-            onClick={() => setShowEditModal(true)}
-            title="수정"
+          <span
+            className={styles.colorDot}
+            style={{ backgroundColor: preset.font.color || '#333', width: 12, height: 12 }}
           />
-          <Button
-            size="small"
-            icon={<DeleteRegular />}
-            onClick={() => onDelete(preset.id)}
-            title="삭제"
-          />
+          <Text className={styles.name}>{preset.name}</Text>
+          <Button size="small" icon={<EditRegular />} onClick={() => setShowEditModal(true)} title="수정" />
+          <Button size="small" icon={<DeleteRegular />} onClick={() => onDelete(preset.id)} title="삭제" />
         </div>
 
-        <Text className={styles.detail}>
-          {fontDetails}
-          {preset.font.color && (
-            <>
-              {' · '}
-              <span
-                className={styles.colorDot}
-                style={{ backgroundColor: preset.font.color }}
-              />
-              {preset.font.color}
-            </>
-          )}
-        </Text>
+        <Text className={styles.detail}>{fontDetails}</Text>
 
         {badges.length > 0 && (
           <Text className={styles.badges}>
-            {badges.map((b) => `[ ${b} ]`).join(' ')}
+            {badges.map((b) => `[${b}]`).join(' ')}
           </Text>
         )}
 
         <div className={styles.actions}>
-          <Button
-            size="small"
-            appearance="primary"
-            icon={<PlayRegular />}
-            onClick={() => onApply(preset)}
-          >
+          <Button size="small" appearance="primary" icon={<PlayRegular />} onClick={() => onApply(preset)}>
             적용
           </Button>
           <Button
             size="small"
-            appearance={titlePresetId === preset.id ? 'primary' : 'secondary'}
+            appearance={titlePresetId === preset.id ? 'primary' : 'subtle'}
             icon={<TextHeader1Regular />}
             onClick={() => onAssignTitle(preset.id)}
-            title="제목용"
           >
             제목
           </Button>
           <Button
             size="small"
-            appearance={bodyPresetId === preset.id ? 'primary' : 'secondary'}
+            appearance={bodyPresetId === preset.id ? 'primary' : 'subtle'}
             icon={<TextAlignLeftRegular />}
             onClick={() => onAssignBody(preset.id)}
-            title="본문용"
           >
             본문
           </Button>
@@ -176,7 +146,7 @@ export function PresetCard({ preset, onApply, onDelete, onAssignTitle, onAssignB
               size="small"
               appearance={Number(assignedSlot) === s ? 'primary' : 'outline'}
               onClick={() => onAssignSlot(preset.id, Number(assignedSlot) === s ? 0 : s)}
-              title={`프리셋 ${s} 지정`}
+              title={`프리셋 ${s}`}
             >
               P{s}
             </Button>
