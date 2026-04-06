@@ -7,11 +7,11 @@ Office.onReady(() => {
   // 리본 버튼 함수 등록
 });
 
-/** settings에서 프리셋 목록과 특정 슬롯에 지정된 프리셋을 가져옴 */
+/** localStorage에서 프리셋 목록과 특정 슬롯에 지정된 프리셋을 가져옴 */
 function getPresetForSlot(slotIndex: number): Record<string, unknown> | null {
-  const presetsRaw = Office.context.document.settings.get(PRESETS_KEY);
+  const presetsRaw = localStorage.getItem(PRESETS_KEY);
   const presets = presetsRaw ? JSON.parse(presetsRaw) : [];
-  const slotPresetId = Office.context.document.settings.get(`${SLOT_KEY_PREFIX}${slotIndex}`);
+  const slotPresetId = localStorage.getItem(`${SLOT_KEY_PREFIX}${slotIndex}`);
   if (slotPresetId) {
     return presets.find((p: { id: string }) => p.id === slotPresetId) ?? null;
   }
@@ -70,9 +70,9 @@ async function applyToAllTitles(event: Office.AddinCommands.Event) {
       slides.load('items');
       await context.sync();
 
-      const presetsRaw = Office.context.document.settings.get(PRESETS_KEY);
+      const presetsRaw = localStorage.getItem(PRESETS_KEY);
       const presets = presetsRaw ? JSON.parse(presetsRaw) : [];
-      const titlePresetId = Office.context.document.settings.get('ppt-style-addin-title-preset-id');
+      const titlePresetId = localStorage.getItem('ppt-style-addin-title-preset-id');
       const preset = titlePresetId
         ? presets.find((p: { id: string }) => p.id === titlePresetId)
         : presets[0];
@@ -114,9 +114,9 @@ async function applyToAllBodies(event: Office.AddinCommands.Event) {
       slides.load('items');
       await context.sync();
 
-      const presetsRaw = Office.context.document.settings.get(PRESETS_KEY);
+      const presetsRaw = localStorage.getItem(PRESETS_KEY);
       const presets = presetsRaw ? JSON.parse(presetsRaw) : [];
-      const bodyPresetId = Office.context.document.settings.get('ppt-style-addin-body-preset-id');
+      const bodyPresetId = localStorage.getItem('ppt-style-addin-body-preset-id');
       const preset = bodyPresetId
         ? presets.find((p: { id: string }) => p.id === bodyPresetId)
         : presets[0];

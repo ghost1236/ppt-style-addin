@@ -5,28 +5,19 @@ const TITLE_PRESET_KEY = 'ppt-style-addin-title-preset-id';
 const BODY_PRESET_KEY = 'ppt-style-addin-body-preset-id';
 const SLOT_KEY_PREFIX = 'ppt-style-addin-slot-';
 
-/** Office.context.document.settings 에 프리셋 저장 */
+/** 프리셋 저장 (localStorage) */
 export async function savePresetsToSettings(presets: StylePreset[]): Promise<void> {
-  return new Promise((resolve, reject) => {
-    try {
-      Office.context.document.settings.set(STORAGE_KEY, JSON.stringify(presets));
-      Office.context.document.settings.saveAsync((result) => {
-        if (result.status === Office.AsyncResultStatus.Succeeded) {
-          resolve();
-        } else {
-          reject(new Error(result.error?.message ?? '저장 실패'));
-        }
-      });
-    } catch (e) {
-      reject(e);
-    }
-  });
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(presets));
+  } catch (e) {
+    console.error('프리셋 저장 실패:', e);
+  }
 }
 
-/** Office.context.document.settings 에서 프리셋 불러오기 */
+/** 프리셋 불러오기 (localStorage) */
 export function loadPresetsFromSettings(): StylePreset[] {
   try {
-    const raw = Office.context.document.settings.get(STORAGE_KEY);
+    const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
     return JSON.parse(raw) as StylePreset[];
   } catch {
@@ -75,28 +66,19 @@ export async function saveRibbonPresetIds(
   titlePresetId: string | null,
   bodyPresetId: string | null
 ): Promise<void> {
-  return new Promise((resolve, reject) => {
-    try {
-      Office.context.document.settings.set(TITLE_PRESET_KEY, titlePresetId);
-      Office.context.document.settings.set(BODY_PRESET_KEY, bodyPresetId);
-      Office.context.document.settings.saveAsync((result) => {
-        if (result.status === Office.AsyncResultStatus.Succeeded) {
-          resolve();
-        } else {
-          reject(new Error(result.error?.message ?? '저장 실패'));
-        }
-      });
-    } catch (e) {
-      reject(e);
-    }
-  });
+  try {
+    localStorage.setItem(TITLE_PRESET_KEY, titlePresetId ?? '');
+    localStorage.setItem(BODY_PRESET_KEY, bodyPresetId ?? '');
+  } catch (e) {
+    console.error('슬롯 저장 실패:', e);
+  }
 }
 
 /** 리본 버튼용 프리셋 ID 불러오기 */
 export function loadRibbonPresetIds(): { titlePresetId: string | null; bodyPresetId: string | null } {
   try {
-    const titlePresetId = Office.context.document.settings.get(TITLE_PRESET_KEY) ?? null;
-    const bodyPresetId = Office.context.document.settings.get(BODY_PRESET_KEY) ?? null;
+    const titlePresetId = localStorage.getItem(TITLE_PRESET_KEY) || null;
+    const bodyPresetId = localStorage.getItem(BODY_PRESET_KEY) || null;
     return { titlePresetId, bodyPresetId };
   } catch {
     return { titlePresetId: null, bodyPresetId: null };
@@ -105,20 +87,11 @@ export function loadRibbonPresetIds(): { titlePresetId: string | null; bodyPrese
 
 /** 슬롯에 프리셋 ID 저장 */
 export async function saveSlotPresetId(slotIndex: number, presetId: string | null): Promise<void> {
-  return new Promise((resolve, reject) => {
-    try {
-      Office.context.document.settings.set(`${SLOT_KEY_PREFIX}${slotIndex}`, presetId);
-      Office.context.document.settings.saveAsync((result) => {
-        if (result.status === Office.AsyncResultStatus.Succeeded) {
-          resolve();
-        } else {
-          reject(new Error(result.error?.message ?? '저장 실패'));
-        }
-      });
-    } catch (e) {
-      reject(e);
-    }
-  });
+  try {
+    localStorage.setItem(`${SLOT_KEY_PREFIX}${slotIndex}`, presetId ?? '');
+  } catch (e) {
+    console.error('슬롯 저장 실패:', e);
+  }
 }
 
 /** 슬롯 프리셋 ID 불러오기 */
@@ -126,7 +99,7 @@ export function loadSlotPresetIds(): Record<number, string | null> {
   const slots: Record<number, string | null> = {};
   try {
     for (let i = 1; i <= 5; i++) {
-      slots[i] = Office.context.document.settings.get(`${SLOT_KEY_PREFIX}${i}`) ?? null;
+      slots[i] = localStorage.getItem(`${SLOT_KEY_PREFIX}${i}`) || null;
     }
   } catch {
     // ignore
