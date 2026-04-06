@@ -83,9 +83,9 @@
                     <Description resid="ApplyMenu.Tooltip"/>
                   </Supertip>
                   <Icon>
-                    <bt:Image size="16" resid="IconSlot1.16"/>
-                    <bt:Image size="32" resid="IconSlot1.32"/>
-                    <bt:Image size="80" resid="IconSlot1.80"/>
+                    <bt:Image size="16" resid="IconApply.16"/>
+                    <bt:Image size="32" resid="IconApply.32"/>
+                    <bt:Image size="80" resid="IconApply.80"/>
                   </Icon>
                   <Items>
                     <Item id="ApplyTitleItem">
@@ -128,9 +128,9 @@
                     <Description resid="PresetSlot.Tooltip"/>
                   </Supertip>
                   <Icon>
-                    <bt:Image size="16" resid="IconSlot3.16"/>
-                    <bt:Image size="32" resid="IconSlot3.32"/>
-                    <bt:Image size="80" resid="IconSlot3.80"/>
+                    <bt:Image size="16" resid="IconPreset.16"/>
+                    <bt:Image size="32" resid="IconPreset.32"/>
+                    <bt:Image size="80" resid="IconPreset.80"/>
                   </Icon>
                   <Items>
                     <Item id="Preset1Item">
@@ -207,6 +207,12 @@
         <bt:Image id="IconSlot5.16" DefaultValue="https://ghost1236.github.io/ppt-style-addin/assets/icon-slot5-16.png"/>
         <bt:Image id="IconSlot5.32" DefaultValue="https://ghost1236.github.io/ppt-style-addin/assets/icon-slot5-32.png"/>
         <bt:Image id="IconSlot5.80" DefaultValue="https://ghost1236.github.io/ppt-style-addin/assets/icon-slot5-80.png"/>
+        <bt:Image id="IconApply.16" DefaultValue="https://ghost1236.github.io/ppt-style-addin/assets/icon-apply-16.png"/>
+        <bt:Image id="IconApply.32" DefaultValue="https://ghost1236.github.io/ppt-style-addin/assets/icon-apply-32.png"/>
+        <bt:Image id="IconApply.80" DefaultValue="https://ghost1236.github.io/ppt-style-addin/assets/icon-apply-80.png"/>
+        <bt:Image id="IconPreset.16" DefaultValue="https://ghost1236.github.io/ppt-style-addin/assets/icon-preset-16.png"/>
+        <bt:Image id="IconPreset.32" DefaultValue="https://ghost1236.github.io/ppt-style-addin/assets/icon-preset-32.png"/>
+        <bt:Image id="IconPreset.80" DefaultValue="https://ghost1236.github.io/ppt-style-addin/assets/icon-preset-80.png"/>
       </bt:Images>
       <bt:Urls>
         <bt:Url id="GetStarted.LearnMoreUrl" DefaultValue="https://ghost1236.github.io/ppt-style-addin/"/>
