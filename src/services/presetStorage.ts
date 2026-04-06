@@ -4,20 +4,67 @@ const STORAGE_KEY = 'ppt-style-addin-presets';
 const TITLE_PRESET_KEY = 'ppt-style-addin-title-preset-id';
 const BODY_PRESET_KEY = 'ppt-style-addin-body-preset-id';
 const SLOT_KEY_PREFIX = 'ppt-style-addin-slot-';
+const MODE_KEY = 'ppt-style-addin-storage-mode';
 
-/** 프리셋 저장 (localStorage) */
-export async function savePresetsToSettings(presets: StylePreset[]): Promise<void> {
+/** 현재 저장 모드 */
+function getMode(): 'local' | 'document' {
+  return (localStorage.getItem(MODE_KEY) as 'local' | 'document') || 'local';
+}
+
+// ── localStorage 방식 ──
+
+function localSet(key: string, value: string) {
+  localStorage.setItem(key, value);
+}
+
+function localGet(key: string): string | null {
+  return localStorage.getItem(key);
+}
+
+// ── Office document.settings 방식 ──
+
+function docSet(key: string, value: string) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(presets));
-  } catch (e) {
-    console.error('프리셋 저장 실패:', e);
+    Office.context.document.settings.set(key, value);
+    Office.context.document.settings.saveAsync(() => {});
+  } catch { /* ignore */ }
+}
+
+function docGet(key: string): string | null {
+  try {
+    return Office.context.document.settings.get(key) ?? null;
+  } catch {
+    return null;
   }
 }
 
-/** 프리셋 불러오기 (localStorage) */
+// ── 통합 인터페이스 ──
+
+function storageSet(key: string, value: string) {
+  if (getMode() === 'document') {
+    docSet(key, value);
+  } else {
+    localSet(key, value);
+  }
+}
+
+function storageGet(key: string): string | null {
+  if (getMode() === 'document') {
+    return docGet(key);
+  } else {
+    return localGet(key);
+  }
+}
+
+/** 프리셋 저장 */
+export async function savePresetsToSettings(presets: StylePreset[]): Promise<void> {
+  storageSet(STORAGE_KEY, JSON.stringify(presets));
+}
+
+/** 프리셋 불러오기 */
 export function loadPresetsFromSettings(): StylePreset[] {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = storageGet(STORAGE_KEY);
     if (!raw) return [];
     return JSON.parse(raw) as StylePreset[];
   } catch {
@@ -66,43 +113,28 @@ export async function saveRibbonPresetIds(
   titlePresetId: string | null,
   bodyPresetId: string | null
 ): Promise<void> {
-  try {
-    localStorage.setItem(TITLE_PRESET_KEY, titlePresetId ?? '');
-    localStorage.setItem(BODY_PRESET_KEY, bodyPresetId ?? '');
-  } catch (e) {
-    console.error('슬롯 저장 실패:', e);
-  }
+  storageSet(TITLE_PRESET_KEY, titlePresetId ?? '');
+  storageSet(BODY_PRESET_KEY, bodyPresetId ?? '');
 }
 
 /** 리본 버튼용 프리셋 ID 불러오기 */
 export function loadRibbonPresetIds(): { titlePresetId: string | null; bodyPresetId: string | null } {
-  try {
-    const titlePresetId = localStorage.getItem(TITLE_PRESET_KEY) || null;
-    const bodyPresetId = localStorage.getItem(BODY_PRESET_KEY) || null;
-    return { titlePresetId, bodyPresetId };
-  } catch {
-    return { titlePresetId: null, bodyPresetId: null };
-  }
+  return {
+    titlePresetId: storageGet(TITLE_PRESET_KEY) || null,
+    bodyPresetId: storageGet(BODY_PRESET_KEY) || null,
+  };
 }
 
 /** 슬롯에 프리셋 ID 저장 */
 export async function saveSlotPresetId(slotIndex: number, presetId: string | null): Promise<void> {
-  try {
-    localStorage.setItem(`${SLOT_KEY_PREFIX}${slotIndex}`, presetId ?? '');
-  } catch (e) {
-    console.error('슬롯 저장 실패:', e);
-  }
+  storageSet(`${SLOT_KEY_PREFIX}${slotIndex}`, presetId ?? '');
 }
 
 /** 슬롯 프리셋 ID 불러오기 */
 export function loadSlotPresetIds(): Record<number, string | null> {
   const slots: Record<number, string | null> = {};
-  try {
-    for (let i = 1; i <= 5; i++) {
-      slots[i] = localStorage.getItem(`${SLOT_KEY_PREFIX}${i}`) || null;
-    }
-  } catch {
-    // ignore
+  for (let i = 1; i <= 5; i++) {
+    slots[i] = storageGet(`${SLOT_KEY_PREFIX}${i}`) || null;
   }
   return slots;
 }
