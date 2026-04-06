@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Button,
   Input,
@@ -89,18 +89,76 @@ const useStyles = makeStyles({
   },
 });
 
-const SYSTEM_FONTS = [
-  'Malgun Gothic',
+/** 감지할 폰트 후보 목록 (한글 + 영문 + 시스템) */
+const FONT_CANDIDATES = [
+  // 한글 폰트
+  'Malgun Gothic', '맑은 고딕',
   'Pretendard',
-  '나눔고딕',
-  '나눔명조',
-  'Arial',
-  'Calibri',
-  'Times New Roman',
-  'Segoe UI',
+  '나눔고딕', 'NanumGothic', '나눔고딕코딩',
+  '나눔명조', 'NanumMyeongjo',
+  '나눔바른고딕', 'NanumBarunGothic',
+  '나눔스퀘어', 'NanumSquare', 'NanumSquareRound',
+  '돋움', 'Dotum', '굴림', 'Gulim',
+  '바탕', 'Batang', '궁서', 'Gungsuh',
   'Apple SD Gothic Neo',
-  'Noto Sans KR',
+  'Noto Sans KR', 'Noto Serif KR',
+  '본고딕', 'Source Han Sans K',
+  '본명조', 'Source Han Serif K',
+  'Spoqa Han Sans Neo',
+  'IBM Plex Sans KR',
+  'KoPubWorldDotum', 'KoPubWorldBatang',
+  'Gmarket Sans',
+  'Noto Sans CJK KR',
+  '함초롬돋움', '함초롬바탕',
+  'D2Coding',
+  // 영문 폰트
+  'Arial', 'Arial Black', 'Arial Narrow',
+  'Calibri', 'Calibri Light',
+  'Cambria', 'Cambria Math',
+  'Times New Roman',
+  'Segoe UI', 'Segoe UI Light', 'Segoe UI Semibold',
+  'Verdana', 'Tahoma', 'Trebuchet MS',
+  'Georgia',
+  'Helvetica', 'Helvetica Neue',
+  'Garamond',
+  'Palatino', 'Palatino Linotype', 'Book Antiqua',
+  'Century Gothic',
+  'Franklin Gothic Medium',
+  'Lucida Sans', 'Lucida Console',
+  'Consolas', 'Courier New',
+  'Impact',
+  'Comic Sans MS',
+  'Candara', 'Constantia', 'Corbel',
+  'Rockwell',
+  'Futura',
+  'Avenir', 'Avenir Next',
+  'Gill Sans', 'Gill Sans MT',
+  'Optima',
+  'San Francisco', 'SF Pro Display', 'SF Pro Text',
+  'Roboto', 'Open Sans', 'Lato', 'Montserrat', 'Poppins',
+  'Inter',
+  'Aptos', 'Aptos Display',
 ];
+
+/** document.fonts.check()로 설치된 폰트 감지 */
+function detectAvailableFonts(): string[] {
+  const available: string[] = [];
+  const seen = new Set<string>();
+
+  for (const font of FONT_CANDIDATES) {
+    if (seen.has(font.toLowerCase())) continue;
+    try {
+      if (document.fonts.check(`12px "${font}"`)) {
+        available.push(font);
+        seen.add(font.toLowerCase());
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  return available.length > 0 ? available : ['Arial', 'Calibri', 'Malgun Gothic'];
+}
 
 export function StyleEditor() {
   const styles = useStyles();
@@ -109,6 +167,18 @@ export function StyleEditor() {
   const [showPresetModal, setShowPresetModal] = useState(false);
   const [isApplying, setIsApplying] = useState(false);
   const [isUndoing, setIsUndoing] = useState(false);
+  const [availableFonts, setAvailableFonts] = useState<string[]>([]);
+
+  useEffect(() => {
+    // 폰트 감지는 document.fonts가 준비된 후 실행
+    if (document.fonts?.ready) {
+      document.fonts.ready.then(() => {
+        setAvailableFonts(detectAvailableFonts());
+      });
+    } else {
+      setAvailableFonts(detectAvailableFonts());
+    }
+  }, []);
 
   const {
     currentFont,
@@ -132,10 +202,11 @@ export function StyleEditor() {
     );
   }
 
+  const undoSupported = applyTarget !== 'selection-text' && applyTarget !== 'selection-shape';
+
   async function handleApply() {
     setIsApplying(true);
     try {
-      // 적용 전 스냅샷 캡처
       const shapes = await captureSnapshot(applyTarget);
       pushUndo({
         timestamp: Date.now(),
@@ -191,7 +262,7 @@ export function StyleEditor() {
             onChange={(_, d) => setCurrentFont({ name: d.value })}
             size="small"
           >
-            {SYSTEM_FONTS.map((f) => (
+            {availableFonts.map((f) => (
               <option key={f} value={f}>{f}</option>
             ))}
           </Select>

@@ -1,6 +1,9 @@
 import type { StylePreset } from '../store/useStore';
 
 const STORAGE_KEY = 'ppt-style-addin-presets';
+const TITLE_PRESET_KEY = 'ppt-style-addin-title-preset-id';
+const BODY_PRESET_KEY = 'ppt-style-addin-body-preset-id';
+const SLOT_KEY_PREFIX = 'ppt-style-addin-slot-';
 
 /** Office.context.document.settings 에 프리셋 저장 */
 export async function savePresetsToSettings(presets: StylePreset[]): Promise<void> {
@@ -65,6 +68,70 @@ export function importPresetsFromJson(): Promise<StylePreset[]> {
     };
     input.click();
   });
+}
+
+/** 리본 버튼용 프리셋 ID 저장 */
+export async function saveRibbonPresetIds(
+  titlePresetId: string | null,
+  bodyPresetId: string | null
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    try {
+      Office.context.document.settings.set(TITLE_PRESET_KEY, titlePresetId);
+      Office.context.document.settings.set(BODY_PRESET_KEY, bodyPresetId);
+      Office.context.document.settings.saveAsync((result) => {
+        if (result.status === Office.AsyncResultStatus.Succeeded) {
+          resolve();
+        } else {
+          reject(new Error(result.error?.message ?? '저장 실패'));
+        }
+      });
+    } catch (e) {
+      reject(e);
+    }
+  });
+}
+
+/** 리본 버튼용 프리셋 ID 불러오기 */
+export function loadRibbonPresetIds(): { titlePresetId: string | null; bodyPresetId: string | null } {
+  try {
+    const titlePresetId = Office.context.document.settings.get(TITLE_PRESET_KEY) ?? null;
+    const bodyPresetId = Office.context.document.settings.get(BODY_PRESET_KEY) ?? null;
+    return { titlePresetId, bodyPresetId };
+  } catch {
+    return { titlePresetId: null, bodyPresetId: null };
+  }
+}
+
+/** 슬롯에 프리셋 ID 저장 */
+export async function saveSlotPresetId(slotIndex: number, presetId: string | null): Promise<void> {
+  return new Promise((resolve, reject) => {
+    try {
+      Office.context.document.settings.set(`${SLOT_KEY_PREFIX}${slotIndex}`, presetId);
+      Office.context.document.settings.saveAsync((result) => {
+        if (result.status === Office.AsyncResultStatus.Succeeded) {
+          resolve();
+        } else {
+          reject(new Error(result.error?.message ?? '저장 실패'));
+        }
+      });
+    } catch (e) {
+      reject(e);
+    }
+  });
+}
+
+/** 슬롯 프리셋 ID 불러오기 */
+export function loadSlotPresetIds(): Record<number, string | null> {
+  const slots: Record<number, string | null> = {};
+  try {
+    for (let i = 1; i <= 5; i++) {
+      slots[i] = Office.context.document.settings.get(`${SLOT_KEY_PREFIX}${i}`) ?? null;
+    }
+  } catch {
+    // ignore
+  }
+  return slots;
 }
 
 /** 고유 ID 생성 */

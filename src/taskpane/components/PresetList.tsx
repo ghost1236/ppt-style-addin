@@ -19,6 +19,8 @@ import { PresetCard } from './PresetCard';
 import { PresetModal } from './PresetModal';
 import {
   savePresetsToSettings,
+  saveRibbonPresetIds,
+  saveSlotPresetId,
   exportPresetsAsJson,
   importPresetsFromJson,
 } from '../../services/presetStorage';
@@ -51,7 +53,7 @@ export function PresetList() {
   const toasterId = useId('preset-toaster');
   const { dispatchToast } = useToastController(toasterId);
   const [showNewModal, setShowNewModal] = useState(false);
-  const { presets, deletePreset, setPresets, applyTarget, currentFont, currentParagraph, loadPresetToEditor } = useStore();
+  const { presets, deletePreset, setPresets, applyTarget, currentFont, currentParagraph, loadPresetToEditor, titlePresetId, bodyPresetId, setTitlePresetId, setBodyPresetId, slotPresetIds, setSlotPresetId } = useStore();
 
   function showToast(msg: string, intent: 'success' | 'warning' | 'error' = 'success') {
     dispatchToast(
@@ -81,6 +83,51 @@ export function PresetList() {
     showToast('프리셋 삭제됨');
   }
 
+  async function handleAssignTitle(id: string) {
+    const newId = titlePresetId === id ? null : id;
+    setTitlePresetId(newId);
+    await saveRibbonPresetIds(newId, bodyPresetId).catch(console.error);
+    const preset = presets.find((p) => p.id === id);
+    showToast(newId ? `"${preset?.name}" → 제목용 지정` : '제목용 지정 해제');
+  }
+
+  async function handleAssignBody(id: string) {
+    const newId = bodyPresetId === id ? null : id;
+    setBodyPresetId(newId);
+    await saveRibbonPresetIds(titlePresetId, newId).catch(console.error);
+    const preset = presets.find((p) => p.id === id);
+    showToast(newId ? `"${preset?.name}" → 본문용 지정` : '본문용 지정 해제');
+  }
+
+  async function handleAssignSlot(presetId: string, slot: number) {
+    // 기존에 이 프리셋이 다른 슬롯에 있었으면 해제
+    for (const [s, id] of Object.entries(slotPresetIds)) {
+      if (id === presetId && Number(s) !== slot) {
+        setSlotPresetId(Number(s), null);
+        await saveSlotPresetId(Number(s), null).catch(console.error);
+      }
+    }
+    // 기존에 이 슬롯에 다른 프리셋이 있었으면 해제
+    if (slot > 0 && slotPresetIds[slot] && slotPresetIds[slot] !== presetId) {
+      setSlotPresetId(slot, null);
+    }
+
+    if (slot === 0) {
+      // "없음" 선택 — 모든 슬롯에서 이 프리셋 해제
+      const currentSlot = Object.entries(slotPresetIds).find(([, id]) => id === presetId)?.[0];
+      if (currentSlot) {
+        setSlotPresetId(Number(currentSlot), null);
+        await saveSlotPresetId(Number(currentSlot), null).catch(console.error);
+      }
+      showToast('슬롯 지정 해제');
+    } else {
+      setSlotPresetId(slot, presetId);
+      await saveSlotPresetId(slot, presetId).catch(console.error);
+      const preset = presets.find((p) => p.id === presetId);
+      showToast(`"${preset?.name}" → 슬롯 ${slot} 지정`);
+    }
+  }
+
   async function handleImport() {
     try {
       const imported = await importPresetsFromJson();
@@ -108,6 +155,9 @@ export function PresetList() {
             preset={preset}
             onApply={handleApply}
             onDelete={handleDelete}
+            onAssignTitle={handleAssignTitle}
+            onAssignBody={handleAssignBody}
+            onAssignSlot={handleAssignSlot}
           />
         ))
       )}

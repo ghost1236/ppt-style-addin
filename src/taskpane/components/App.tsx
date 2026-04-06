@@ -13,7 +13,7 @@ import { useStore } from '../../store/useStore';
 import { TargetSelector } from './TargetSelector';
 import { StyleEditor } from './StyleEditor';
 import { PresetList } from './PresetList';
-import { loadPresetsFromSettings } from '../../services/presetStorage';
+import { loadPresetsFromSettings, loadRibbonPresetIds, loadSlotPresetIds } from '../../services/presetStorage';
 import { getOfficeVersion, isApiSupported } from '../../services/officeService';
 
 const useStyles = makeStyles({
@@ -62,19 +62,28 @@ const useStyles = makeStyles({
 
 export default function App() {
   const styles = useStyles();
-  const { activeTab, setActiveTab, setPresets, setOfficeInfo, officeVersion, isLegacyApi } =
+  const { activeTab, setActiveTab, setPresets, setOfficeInfo, officeVersion, isLegacyApi, setTitlePresetId, setBodyPresetId, setSlotPresetIds } =
     useStore();
 
   useEffect(() => {
     try {
       // Office 환경 감지
       const version = getOfficeVersion();
-      const legacy = !isApiSupported('PresentationAPI', '1.3');
+      const legacy = !isApiSupported('PowerPointApi', '1.3');
       setOfficeInfo(version, legacy);
 
       // 저장된 프리셋 불러오기
       const saved = loadPresetsFromSettings();
       if (saved.length > 0) setPresets(saved);
+
+      // 리본 버튼용 지정 프리셋 불러오기
+      const { titlePresetId, bodyPresetId } = loadRibbonPresetIds();
+      setTitlePresetId(titlePresetId);
+      setBodyPresetId(bodyPresetId);
+
+      // 슬롯 프리셋 불러오기
+      const slots = loadSlotPresetIds();
+      setSlotPresetIds(slots);
     } catch (e) {
       console.warn('Office 초기화 오류:', e);
     }

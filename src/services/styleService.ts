@@ -1,6 +1,6 @@
 /* global PowerPoint, Office */
 import type { FontStyle, ParagraphStyle, ApplyTarget, ShapeStyleRecord } from '../store/useStore';
-import { hasPlaceholderTypeSupport, hasLineSpacingSupport, isTitleShape, isBodyShape, isPowerPointReady } from './officeService';
+import { hasLineSpacingSupport, isTitleShape, isBodyShape, isPowerPointReady } from './officeService';
 
 export interface ApplyOptions {
   font: FontStyle;
@@ -14,9 +14,13 @@ function applyFontToRange(range: PowerPoint.TextRange, font: FontStyle): void {
   if (font.size !== undefined) range.font.size = font.size;
   if (font.bold !== undefined) range.font.bold = font.bold;
   if (font.italic !== undefined) range.font.italic = font.italic;
-  // underline은 Office.js에서 ShapeFontUnderlineStyle('Single'|'None') 사용
-  if (font.underline !== undefined)
-    (range.font as unknown as { underline: string }).underline = font.underline ? 'Single' : 'None';
+  if (font.underline !== undefined) {
+    try {
+      (range.font as unknown as { underline: string }).underline = font.underline ? 'Single' : 'None';
+    } catch {
+      // underline 미지원 환경 무시
+    }
+  }
   if (font.color !== undefined) range.font.color = font.color;
 }
 
@@ -38,12 +42,35 @@ function applyParagraphToFrame(
 
   if (paragraph.lineSpacing !== undefined) {
     if (hasLineSpacingSupport()) {
-      // spaceWithin: 줄간격 배수 (100 = 1.0배, PresentationAPI 1.5+)
       (range.paragraphFormat as unknown as { spaceWithin: number }).spaceWithin =
         paragraph.lineSpacing * 100;
     } else {
       showLineSpacingWarning();
     }
+  }
+}
+
+/** 개별 도형에 안전하게 스타일 적용 (textFrame 없는 도형은 건너뜀) */
+async function safeApplyToShape(
+  context: PowerPoint.RequestContext,
+  shape: PowerPoint.Shape,
+  options: ApplyOptions,
+  showLineSpacingWarning: () => void
+): Promise<boolean> {
+  try {
+    const textFrame = shape.textFrame;
+    const textRange = textFrame.textRange;
+    textRange.load('text');
+    await context.sync();
+
+    applyFontToRange(textRange, options.font);
+    if (options.paragraph) {
+      applyParagraphToFrame(textRange, options.paragraph, showLineSpacingWarning);
+    }
+    await context.sync();
+    return true;
+  } catch {
+    return false;
   }
 }
 
@@ -56,31 +83,71 @@ async function applyToSlide(
   showLineSpacingWarning: () => void
 ): Promise<void> {
   const shapes = slide.shapes;
-  shapes.load('items/name,items/textFrame,items/placeholderType');
+  shapes.load('items/name');
   await context.sync();
 
   for (const shape of shapes.items) {
-    if (!shape.textFrame) continue;
+    if (filter === 'title' && !isTitleShape(shape.name)) continue;
+    if (filter === 'body' && !isBodyShape(shape.name)) continue;
 
-    // placeholderType은 PresentationAPI 1.3+ 전용 — any 캐스팅으로 런타임 접근
-    const shapeAny = shape as unknown as { placeholderType?: string };
-    if (filter === 'title') {
-      const isTitle = hasPlaceholderTypeSupport()
-        ? shapeAny.placeholderType === PowerPoint.PlaceholderType.title
-        : isTitleShape(shape.name);
-      if (!isTitle) continue;
-    } else if (filter === 'body') {
-      const isBody = hasPlaceholderTypeSupport()
-        ? shapeAny.placeholderType === PowerPoint.PlaceholderType.body
-        : isBodyShape(shape.name);
-      if (!isBody) continue;
-    }
-
-    applyFontToRange(shape.textFrame.textRange, options.font);
-    if (options.paragraph) {
-      applyParagraphToFrame(shape.textFrame.textRange, options.paragraph, showLineSpacingWarning);
-    }
+    await safeApplyToShape(context, shape, options, showLineSpacingWarning);
   }
+}
+
+/** 위치 허용 오차 (포인트 단위) */
+const POSITION_TOLERANCE = 50;
+
+/** 두 도형이 같은 위치에 있는지 판정 (좌상단 좌표 기준) */
+function isSamePosition(
+  a: { left: number; top: number },
+  b: { left: number; top: number }
+): boolean {
+  return (
+    Math.abs(a.left - b.left) <= POSITION_TOLERANCE &&
+    Math.abs(a.top - b.top) <= POSITION_TOLERANCE
+  );
+}
+
+/** 선택한 도형의 위치를 기준으로 모든 슬라이드의 같은 위치 텍스트에 스타일 적용 */
+async function applyToSamePosition(
+  options: ApplyOptions,
+  showLineSpacingWarning: () => void
+): Promise<void> {
+  await PowerPoint.run(async (context) => {
+    // 1. 선택한 도형의 위치 수집
+    const selectedShapes = context.presentation.getSelectedShapes();
+    selectedShapes.load('items/left,items/top');
+    await context.sync();
+
+    if (selectedShapes.items.length === 0) {
+      throw new Error('먼저 슬라이드에서 텍스트 상자를 선택해주세요.');
+    }
+
+    const targetPositions = selectedShapes.items.map((s) => ({
+      left: s.left,
+      top: s.top,
+    }));
+
+    // 2. 모든 슬라이드에서 같은 위치의 도형에 스타일 적용
+    const slides = context.presentation.slides;
+    slides.load('items');
+    await context.sync();
+
+    for (const slide of slides.items) {
+      const shapes = slide.shapes;
+      shapes.load('items/left,items/top');
+      await context.sync();
+
+      for (const shape of shapes.items) {
+        const matched = targetPositions.some((tp) => isSamePosition(tp, {
+          left: shape.left, top: shape.top,
+        }));
+        if (!matched) continue;
+
+        await safeApplyToShape(context, shape, options, showLineSpacingWarning);
+      }
+    }
+  });
 }
 
 /** 메인 스타일 적용 함수 — 모든 ApplyTarget을 통합 처리 */
@@ -96,23 +163,34 @@ export async function applyStyle(
   if (target === 'selection-text' || target === 'selection-shape') {
     await PowerPoint.run(async (context) => {
       const selectedShapes = context.presentation.getSelectedShapes();
-      selectedShapes.load('items/textFrame,items/name');
+      selectedShapes.load('items/name');
       await context.sync();
 
       for (const shape of selectedShapes.items) {
-        if (!shape.textFrame) continue;
-        // getSelectedTextRange는 PresentationAPI 1.5+ — any 캐스팅
-        const range =
-          target === 'selection-text'
-            ? (shape.textFrame as unknown as { getSelectedTextRange: () => PowerPoint.TextRange }).getSelectedTextRange()
-            : shape.textFrame.textRange;
-        applyFontToRange(range, options.font);
-        if (options.paragraph) {
-          applyParagraphToFrame(range, options.paragraph, onLineSpacingUnsupported);
+        try {
+          const textFrame = shape.textFrame;
+          const range =
+            target === 'selection-text'
+              ? (textFrame as unknown as { getSelectedTextRange: () => PowerPoint.TextRange }).getSelectedTextRange()
+              : textFrame.textRange;
+          range.load('text');
+          await context.sync();
+
+          applyFontToRange(range, options.font);
+          if (options.paragraph) {
+            applyParagraphToFrame(range, options.paragraph, onLineSpacingUnsupported);
+          }
+          await context.sync();
+        } catch {
+          continue;
         }
       }
-      await context.sync();
     });
+    return;
+  }
+
+  if (target === 'all-same-position') {
+    await applyToSamePosition(options, onLineSpacingUnsupported);
     return;
   }
 
@@ -131,7 +209,6 @@ export async function applyStyle(
       for (const slide of selectedSlides.items) {
         await applyToSlide(context, slide, options, filter, onLineSpacingUnsupported);
       }
-      await context.sync();
     });
   } else {
     await PowerPoint.run(async (context) => {
@@ -141,20 +218,76 @@ export async function applyStyle(
       for (const slide of slides.items) {
         await applyToSlide(context, slide, options, filter, onLineSpacingUnsupported);
       }
-      await context.sync();
     });
   }
 }
 
 /**
  * 적용 전 스타일 스냅샷 캡처 (실행 취소용)
- * selection-text/shape는 range 단위 캡처가 복잡해 슬라이드 단위만 지원
  */
 export async function captureSnapshot(target: ApplyTarget): Promise<ShapeStyleRecord[]> {
   const records: ShapeStyleRecord[] = [];
 
   if (target === 'selection-text' || target === 'selection-shape') {
-    // 선택 범위 단위 스냅샷은 지원하지 않음 (빈 배열 반환)
+    return records;
+  }
+
+  if (target === 'all-same-position') {
+    // 위치 기반 스냅샷: 선택한 도형 위치와 같은 도형들의 스타일 캡처
+    await PowerPoint.run(async (context) => {
+      const selectedShapes = context.presentation.getSelectedShapes();
+      selectedShapes.load('items/left,items/top');
+      await context.sync();
+
+      if (selectedShapes.items.length === 0) return;
+
+      const targetPositions = selectedShapes.items.map((s) => ({
+        left: s.left,
+        top: s.top,
+      }));
+
+      const slides = context.presentation.slides;
+      slides.load('items');
+      await context.sync();
+
+      for (let si = 0; si < slides.items.length; si++) {
+        const shapes = slides.items[si].shapes;
+        shapes.load('items/left,items/top');
+        await context.sync();
+
+        for (let shi = 0; shi < shapes.items.length; shi++) {
+          const shape = shapes.items[shi];
+          const matched = targetPositions.some((tp) => isSamePosition(tp, {
+            left: shape.left, top: shape.top,
+          }));
+          if (!matched) continue;
+
+          try {
+            const range = shape.textFrame.textRange;
+            range.load('font/name,font/size,font/bold,font/italic,font/color');
+            range.paragraphFormat.load('horizontalAlignment');
+            await context.sync();
+
+            records.push({
+              slideIndex: si,
+              shapeIndex: shi,
+              font: {
+                name: range.font.name ?? undefined,
+                size: range.font.size ?? undefined,
+                bold: range.font.bold ?? undefined,
+                italic: range.font.italic ?? undefined,
+                underline: undefined,
+                color: range.font.color ?? undefined,
+              },
+              alignment: range.paragraphFormat.horizontalAlignment ?? undefined,
+            });
+          } catch {
+            continue;
+          }
+        }
+      }
+    });
+
     return records;
   }
 
@@ -182,47 +315,37 @@ export async function captureSnapshot(target: ApplyTarget): Promise<ShapeStyleRe
 
     for (let si = 0; si < slideItems.length; si++) {
       const shapes = slideItems[si].shapes;
-      shapes.load('items/name,items/textFrame,items/placeholderType');
+      shapes.load('items/name');
       await context.sync();
 
       for (let shi = 0; shi < shapes.items.length; shi++) {
         const shape = shapes.items[shi];
-        if (!shape.textFrame) continue;
 
-        const shapeAny = shape as unknown as { placeholderType?: string };
-        if (filter === 'title') {
-          const isTitle = hasPlaceholderTypeSupport()
-            ? shapeAny.placeholderType === PowerPoint.PlaceholderType.title
-            : isTitleShape(shape.name);
-          if (!isTitle) continue;
-        } else if (filter === 'body') {
-          const isBody = hasPlaceholderTypeSupport()
-            ? shapeAny.placeholderType === PowerPoint.PlaceholderType.body
-            : isBodyShape(shape.name);
-          if (!isBody) continue;
+        if (filter === 'title' && !isTitleShape(shape.name)) continue;
+        if (filter === 'body' && !isBodyShape(shape.name)) continue;
+
+        try {
+          const range = shape.textFrame.textRange;
+          range.load('font/name,font/size,font/bold,font/italic,font/color');
+          range.paragraphFormat.load('horizontalAlignment');
+          await context.sync();
+
+          records.push({
+            slideIndex: si,
+            shapeIndex: shi,
+            font: {
+              name: range.font.name ?? undefined,
+              size: range.font.size ?? undefined,
+              bold: range.font.bold ?? undefined,
+              italic: range.font.italic ?? undefined,
+              underline: undefined,
+              color: range.font.color ?? undefined,
+            },
+            alignment: range.paragraphFormat.horizontalAlignment ?? undefined,
+          });
+        } catch {
+          continue;
         }
-
-        // 폰트 속성 로드
-        const range = shape.textFrame.textRange;
-        range.load('font/name,font/size,font/bold,font/italic,font/underline,font/color');
-        range.paragraphFormat.load('horizontalAlignment');
-        await context.sync();
-
-        const underlineVal = (range.font as unknown as { underline?: string }).underline;
-        records.push({
-          slideIndex: si,
-          shapeIndex: shi,
-          font: {
-            name: range.font.name ?? undefined,
-            size: range.font.size ?? undefined,
-            bold: range.font.bold ?? undefined,
-            italic: range.font.italic ?? undefined,
-            // 'Single' → true, 'None'/'null' → false
-            underline: underlineVal != null ? underlineVal !== 'None' : undefined,
-            color: range.font.color ?? undefined,
-          },
-          alignment: range.paragraphFormat.horizontalAlignment ?? undefined,
-        });
       }
     }
   });
@@ -246,30 +369,37 @@ export async function restoreSnapshot(records: ShapeStyleRecord[]): Promise<void
       if (!slide) continue;
 
       const shapes = slide.shapes;
-      shapes.load('items/textFrame');
+      shapes.load('items/name');
       await context.sync();
 
       const shape = shapes.items[record.shapeIndex];
-      if (!shape?.textFrame) continue;
+      if (!shape) continue;
 
-      const range = shape.textFrame.textRange;
-      applyFontToRange(range, record.font);
+      try {
+        const range = shape.textFrame.textRange;
+        range.load('text');
+        await context.sync();
 
-      if (record.alignment) {
-        const alignMap: Record<string, PowerPoint.ParagraphHorizontalAlignment> = {
-          left: PowerPoint.ParagraphHorizontalAlignment.left,
-          center: PowerPoint.ParagraphHorizontalAlignment.center,
-          right: PowerPoint.ParagraphHorizontalAlignment.right,
-          justify: PowerPoint.ParagraphHorizontalAlignment.justify,
-          Left: PowerPoint.ParagraphHorizontalAlignment.left,
-          Center: PowerPoint.ParagraphHorizontalAlignment.center,
-          Right: PowerPoint.ParagraphHorizontalAlignment.right,
-          Justify: PowerPoint.ParagraphHorizontalAlignment.justify,
-        };
-        const align = alignMap[record.alignment];
-        if (align) range.paragraphFormat.horizontalAlignment = align;
+        applyFontToRange(range, record.font);
+
+        if (record.alignment) {
+          const alignMap: Record<string, PowerPoint.ParagraphHorizontalAlignment> = {
+            left: PowerPoint.ParagraphHorizontalAlignment.left,
+            center: PowerPoint.ParagraphHorizontalAlignment.center,
+            right: PowerPoint.ParagraphHorizontalAlignment.right,
+            justify: PowerPoint.ParagraphHorizontalAlignment.justify,
+            Left: PowerPoint.ParagraphHorizontalAlignment.left,
+            Center: PowerPoint.ParagraphHorizontalAlignment.center,
+            Right: PowerPoint.ParagraphHorizontalAlignment.right,
+            Justify: PowerPoint.ParagraphHorizontalAlignment.justify,
+          };
+          const align = alignMap[record.alignment];
+          if (align) range.paragraphFormat.horizontalAlignment = align;
+        }
+        await context.sync();
+      } catch {
+        continue;
       }
     }
-    await context.sync();
   });
 }

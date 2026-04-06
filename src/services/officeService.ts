@@ -17,16 +17,16 @@ export function isApiSupported(requirement: string, version: string): boolean {
 }
 
 /**
- * PresentationAPI 1.3 이상 (제목/본문 Placeholder 타입 구분)
+ * PowerPointApi 1.3 이상 (제목/본문 Placeholder 타입 구분)
  */
 export const hasPlaceholderTypeSupport = (): boolean =>
-  isApiSupported('PresentationAPI', '1.3');
+  isApiSupported('PowerPointApi', '1.3');
 
 /**
- * PresentationAPI 1.5 이상 (줄간격 lineSpacing)
+ * PowerPointApi 1.5 이상 (줄간격 lineSpacing)
  */
 export const hasLineSpacingSupport = (): boolean =>
-  isApiSupported('PresentationAPI', '1.5');
+  isApiSupported('PowerPointApi', '1.5');
 
 /**
  * shape 이름으로 제목인지 추정 (Fallback, 영구 라이선스용)

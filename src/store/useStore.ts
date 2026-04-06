@@ -8,7 +8,8 @@ export type ApplyTarget =
   | 'current-all'
   | 'all-titles'
   | 'all-bodies'
-  | 'all-all';
+  | 'all-all'
+  | 'all-same-position';
 
 export interface FontStyle {
   name?: string;
@@ -56,6 +57,12 @@ interface StoreState {
   activeTab: 'editor' | 'presets';
   officeVersion: string;
   isLegacyApi: boolean;
+  /** 리본 "제목 일괄 적용" 버튼에 사용할 프리셋 ID */
+  titlePresetId: string | null;
+  /** 리본 "본문 일괄 적용" 버튼에 사용할 프리셋 ID */
+  bodyPresetId: string | null;
+  /** 리본 프리셋 슬롯 (1~5) */
+  slotPresetIds: Record<number, string | null>;
 
   setCurrentFont: (font: Partial<FontStyle>) => void;
   setCurrentParagraph: (para: Partial<ParagraphStyle>) => void;
@@ -69,6 +76,10 @@ interface StoreState {
   setActiveTab: (tab: 'editor' | 'presets') => void;
   setOfficeInfo: (version: string, isLegacy: boolean) => void;
   loadPresetToEditor: (preset: StylePreset) => void;
+  setTitlePresetId: (id: string | null) => void;
+  setBodyPresetId: (id: string | null) => void;
+  setSlotPresetId: (slot: number, id: string | null) => void;
+  setSlotPresetIds: (slots: Record<number, string | null>) => void;
 }
 
 export const useStore = create<StoreState>((set, get) => ({
@@ -90,6 +101,9 @@ export const useStore = create<StoreState>((set, get) => ({
   activeTab: 'editor',
   officeVersion: '',
   isLegacyApi: false,
+  titlePresetId: null,
+  bodyPresetId: null,
+  slotPresetIds: { 1: null, 2: null, 3: null, 4: null, 5: null },
 
   setCurrentFont: (font) =>
     set((state) => ({ currentFont: { ...state.currentFont, ...font } })),
@@ -138,4 +152,10 @@ export const useStore = create<StoreState>((set, get) => ({
         : { alignment: 'left', lineSpacing: 1.5 },
       activeTab: 'editor',
     }),
+
+  setTitlePresetId: (id) => set({ titlePresetId: id }),
+  setBodyPresetId: (id) => set({ bodyPresetId: id }),
+  setSlotPresetId: (slot, id) =>
+    set((state) => ({ slotPresetIds: { ...state.slotPresetIds, [slot]: id } })),
+  setSlotPresetIds: (slots) => set({ slotPresetIds: slots }),
 }));
