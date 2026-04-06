@@ -8,17 +8,16 @@ import { useStore, type ApplyTarget } from '../../store/useStore';
 
 const useStyles = makeStyles({
   section: {
-    padding: '8px 12px',
+    padding: '10px 12px',
     borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
     display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
+    flexDirection: 'column',
+    gap: '6px',
   },
   label: {
     fontSize: tokens.fontSizeBase200,
     fontWeight: tokens.fontWeightSemibold,
     color: tokens.colorNeutralForeground3,
-    flexShrink: 0,
   },
 });
 
