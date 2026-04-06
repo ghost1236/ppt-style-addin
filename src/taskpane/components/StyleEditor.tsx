@@ -14,6 +14,7 @@ import {
   Toaster,
   useId,
   Divider,
+  Text,
 } from '@fluentui/react-components';
 import {
   TextBoldRegular,
@@ -38,19 +39,20 @@ const useStyles = makeStyles({
     padding: '12px',
     display: 'flex',
     flexDirection: 'column',
-    gap: '10px',
+    gap: '14px',
   },
   section: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '6px',
+    gap: '8px',
   },
   sectionTitle: {
     fontSize: tokens.fontSizeBase200,
-    fontWeight: tokens.fontWeightSemibold,
+    fontWeight: tokens.fontWeightBold,
     color: tokens.colorNeutralForeground3,
     textTransform: 'uppercase' as const,
-    letterSpacing: '0.5px',
+    letterSpacing: '0.8px',
+    marginBottom: '2px',
   },
   row: {
     display: 'flex',
@@ -58,7 +60,7 @@ const useStyles = makeStyles({
     gap: '8px',
   },
   label: {
-    width: '44px',
+    width: '40px',
     fontSize: tokens.fontSizeBase200,
     color: tokens.colorNeutralForeground2,
     flexShrink: 0,
@@ -68,39 +70,34 @@ const useStyles = makeStyles({
     minWidth: 0,
   },
   sizeInput: {
-    width: '70px',
+    width: '64px',
   },
   toggleGroup: {
     display: 'flex',
-    gap: '2px',
-  },
-  alignGroup: {
-    display: 'flex',
-    gap: '2px',
-  },
-  lineSpacingInput: {
-    width: '70px',
+    gap: '1px',
   },
   preview: {
-    padding: '8px 12px',
+    padding: '10px 12px',
     borderRadius: tokens.borderRadiusMedium,
     backgroundColor: tokens.colorNeutralBackground3,
-    border: `1px solid ${tokens.colorNeutralStroke2}`,
+    border: `1px dashed ${tokens.colorNeutralStroke2}`,
     textAlign: 'center' as const,
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap' as const,
+    minHeight: '32px',
+  },
+  previewLabel: {
+    fontSize: tokens.fontSizeBase100,
+    color: tokens.colorNeutralForeground4,
+    marginBottom: '4px',
   },
   applySection: {
     display: 'flex',
-    gap: '8px',
-    paddingTop: '4px',
+    gap: '6px',
   },
   applyBtn: {
     flex: 1,
-  },
-  undoBtn: {
-    flexShrink: 0,
   },
 });
 
@@ -184,7 +181,7 @@ export function StyleEditor() {
         { font: currentFont, paragraph: currentParagraph },
         () => showToast('줄간격은 Microsoft 365에서만 지원됩니다', 'warning')
       );
-      showToast('스타일이 적용되었습니다');
+      showToast('적용 완료');
     } catch (e) {
       showToast(`오류: ${(e as Error).message}`, 'error');
     } finally {
@@ -196,24 +193,23 @@ export function StyleEditor() {
     const entry = popUndo();
     if (!entry) return;
     if (entry.shapes.length === 0) {
-      showToast('선택 범위 적용은 실행 취소가 지원되지 않습니다', 'warning');
+      showToast('이 적용은 실행취소를 지원하지 않습니다', 'warning');
       return;
     }
     setIsUndoing(true);
     try {
       await restoreSnapshot(entry.shapes);
-      showToast('실행 취소 완료');
+      showToast('실행취소 완료');
     } catch (e) {
-      showToast(`실행 취소 실패: ${(e as Error).message}`, 'error');
+      showToast(`실행취소 실패: ${(e as Error).message}`, 'error');
     } finally {
       setIsUndoing(false);
     }
   }
 
-  // 미리보기 스타일
   const previewStyle: React.CSSProperties = {
     fontFamily: currentFont.name || 'inherit',
-    fontSize: Math.min(currentFont.size || 18, 28) + 'px',
+    fontSize: Math.min(currentFont.size || 18, 24) + 'px',
     fontWeight: currentFont.bold ? 'bold' : 'normal',
     fontStyle: currentFont.italic ? 'italic' : 'normal',
     textDecoration: currentFont.underline ? 'underline' : 'none',
@@ -225,33 +221,21 @@ export function StyleEditor() {
     <div className={styles.container}>
       <Toaster toasterId={toasterId} />
 
-      {/* 미리보기 */}
-      <div className={styles.preview} style={previewStyle}>
-        미리보기 Preview
-      </div>
-
-      <Divider />
-
       {/* 폰트 */}
       <div className={styles.section}>
-        <div className={styles.sectionTitle}>폰트</div>
+        <Text className={styles.sectionTitle}>폰트</Text>
+        <Select
+          className={styles.fontSelect}
+          value={currentFont.name ?? 'Malgun Gothic'}
+          onChange={(_, d) => setCurrentFont({ name: d.value })}
+          size="small"
+        >
+          {availableFonts.map((f) => (
+            <option key={f} value={f}>{f}</option>
+          ))}
+        </Select>
 
         <div className={styles.row}>
-          <Label className={styles.label}>글꼴</Label>
-          <Select
-            className={styles.fontSelect}
-            value={currentFont.name ?? 'Malgun Gothic'}
-            onChange={(_, d) => setCurrentFont({ name: d.value })}
-            size="small"
-          >
-            {availableFonts.map((f) => (
-              <option key={f} value={f}>{f}</option>
-            ))}
-          </Select>
-        </div>
-
-        <div className={styles.row}>
-          <Label className={styles.label}>크기</Label>
           <Input
             className={styles.sizeInput}
             type="number"
@@ -263,32 +247,10 @@ export function StyleEditor() {
             contentAfter={<span>pt</span>}
           />
           <div className={styles.toggleGroup}>
-            <ToggleButton
-              size="small"
-              checked={currentFont.bold}
-              onClick={() => setCurrentFont({ bold: !currentFont.bold })}
-              icon={<TextBoldRegular />}
-              title="굵게"
-            />
-            <ToggleButton
-              size="small"
-              checked={currentFont.italic}
-              onClick={() => setCurrentFont({ italic: !currentFont.italic })}
-              icon={<TextItalicRegular />}
-              title="기울임"
-            />
-            <ToggleButton
-              size="small"
-              checked={currentFont.underline}
-              onClick={() => setCurrentFont({ underline: !currentFont.underline })}
-              icon={<TextUnderlineRegular />}
-              title="밑줄"
-            />
+            <ToggleButton size="small" checked={currentFont.bold} onClick={() => setCurrentFont({ bold: !currentFont.bold })} icon={<TextBoldRegular />} title="굵게" />
+            <ToggleButton size="small" checked={currentFont.italic} onClick={() => setCurrentFont({ italic: !currentFont.italic })} icon={<TextItalicRegular />} title="기울임" />
+            <ToggleButton size="small" checked={currentFont.underline} onClick={() => setCurrentFont({ underline: !currentFont.underline })} icon={<TextUnderlineRegular />} title="밑줄" />
           </div>
-        </div>
-
-        <div className={styles.row}>
-          <Label className={styles.label}>색상</Label>
           <ColorPicker
             color={currentFont.color ?? '#333333'}
             onChange={(c) => setCurrentFont({ color: c })}
@@ -296,15 +258,11 @@ export function StyleEditor() {
         </div>
       </div>
 
-      <Divider />
-
       {/* 단락 */}
       <div className={styles.section}>
-        <div className={styles.sectionTitle}>단락</div>
-
+        <Text className={styles.sectionTitle}>단락</Text>
         <div className={styles.row}>
-          <Label className={styles.label}>정렬</Label>
-          <div className={styles.alignGroup}>
+          <div className={styles.toggleGroup}>
             {(['left', 'center', 'right', 'justify'] as const).map((align) => (
               <ToggleButton
                 key={align}
@@ -317,21 +275,15 @@ export function StyleEditor() {
                   align === 'right' ? <TextAlignRightRegular /> :
                   <TextAlignJustifyRegular />
                 }
-                title={
-                  align === 'left' ? '왼쪽' :
-                  align === 'center' ? '가운데' :
-                  align === 'right' ? '오른쪽' : '양쪽'
-                }
               />
             ))}
           </div>
-          <Label className={styles.label}>줄간격</Label>
           <Tooltip
-            content={lineSpacingSupported ? '' : '이 기능은 Microsoft 365에서만 지원됩니다'}
+            content={lineSpacingSupported ? '줄간격' : 'Microsoft 365에서만 지원'}
             relationship="label"
           >
             <Input
-              className={styles.lineSpacingInput}
+              className={styles.sizeInput}
               type="number"
               value={String(currentParagraph.lineSpacing ?? 1.5)}
               onChange={(_, d) => setCurrentParagraph({ lineSpacing: Number(d.value) })}
@@ -348,6 +300,16 @@ export function StyleEditor() {
 
       <Divider />
 
+      {/* 미리보기 */}
+      <div>
+        <Text className={styles.previewLabel}>미리보기</Text>
+        <div className={styles.preview} style={previewStyle}>
+          가나다라 ABCD 1234
+        </div>
+      </div>
+
+      <Divider />
+
       {/* 적용 버튼 */}
       <div className={styles.applySection}>
         <Button
@@ -356,7 +318,6 @@ export function StyleEditor() {
           icon={<CheckmarkRegular />}
           onClick={handleApply}
           disabled={isApplying}
-          size="medium"
         >
           {isApplying ? '적용 중...' : '적용'}
         </Button>
@@ -364,18 +325,16 @@ export function StyleEditor() {
           icon={<SaveRegular />}
           onClick={() => setShowPresetModal(true)}
           title="프리셋 저장"
-          size="medium"
         >
           저장
         </Button>
-        <Button
-          className={styles.undoBtn}
-          icon={<ArrowUndoRegular />}
-          disabled={undoStack.length === 0 || isUndoing}
-          onClick={handleUndo}
-          title={`실행취소 (${undoStack.length})`}
-          size="medium"
-        />
+        <Tooltip content={`실행취소 (${undoStack.length})`} relationship="label">
+          <Button
+            icon={<ArrowUndoRegular />}
+            disabled={undoStack.length === 0 || isUndoing}
+            onClick={handleUndo}
+          />
+        </Tooltip>
       </div>
 
       {showPresetModal && (
