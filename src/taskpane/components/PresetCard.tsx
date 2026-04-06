@@ -67,20 +67,28 @@ const useStyles = makeStyles({
   },
   storageBadge: {
     fontSize: '10px',
-    padding: '1px 6px',
+    padding: '2px 8px',
     borderRadius: '10px',
     cursor: 'pointer',
-    border: 'none',
     lineHeight: '16px',
     fontWeight: tokens.fontWeightSemibold,
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '3px',
+    userSelect: 'none',
   },
   storageLocal: {
-    backgroundColor: tokens.colorPaletteGreenBackground2,
-    color: tokens.colorPaletteGreenForeground2,
+    backgroundColor: '#dff6dd',
+    color: '#107c10',
+    border: '1px solid #a7e3a5',
   },
   storageDoc: {
-    backgroundColor: tokens.colorPaletteBerryBackground2,
-    color: tokens.colorPaletteBerryForeground2,
+    backgroundColor: '#f0e6f6',
+    color: '#8764b8',
+    border: '1px solid #c8a8e0',
+  },
+  storageIcon: {
+    fontSize: '11px',
   },
 });
 
@@ -132,6 +140,7 @@ export function PresetCard({ preset, onApply, onDelete, onAssignTitle, onAssignB
             onClick={() => onToggleStorage(preset.id)}
             title={isLocal ? '전역 저장 중 (클릭: 파일별로 변경)' : '파일별 저장 중 (클릭: 전역으로 변경)'}
           >
+            <span className={styles.storageIcon}>{isLocal ? '🌐' : '📄'}</span>
             {isLocal ? '전역' : '파일별'}
           </span>
           <Button size="small" icon={<EditRegular />} onClick={() => setShowEditModal(true)} title="수정" />
