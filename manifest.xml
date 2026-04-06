@@ -13,19 +13,18 @@
   <DisplayName DefaultValue="디자인 도구"/>
   <Description DefaultValue="PowerPoint 폰트/컬러/스타일 일괄 적용 Add-in"/>
 
-  <IconUrl DefaultValue="https://YOUR_GITHUB_ID.github.io/ppt-style-addin/assets/icon-32.png"/>
-  <HighResolutionIconUrl DefaultValue="https://YOUR_GITHUB_ID.github.io/ppt-style-addin/assets/icon-80.png"/>
-  <SupportUrl DefaultValue="https://YOUR_GITHUB_ID.github.io/ppt-style-addin/"/>
+  <IconUrl DefaultValue="https://ghost1236.github.io/ppt-style-addin/assets/icon-32.png"/>
+  <HighResolutionIconUrl DefaultValue="https://ghost1236.github.io/ppt-style-addin/assets/icon-80.png"/>
+  <SupportUrl DefaultValue="https://ghost1236.github.io/ppt-style-addin/"/>
 
   <AppDomains>
-    <AppDomain>https://YOUR_GITHUB_ID.github.io</AppDomain>
+    <AppDomain>https://ghost1236.github.io</AppDomain>
   </AppDomains>
 
   <Hosts>
     <Host Name="Presentation"/>
   </Hosts>
 
-  <!-- 최소 요구사항: PresentationAPI 1.2 (영구 라이선스 2019/2021도 지원) -->
   <Requirements>
     <Sets DefaultMinVersion="1.1">
       <Set Name="PresentationAPI" MinVersion="1.2"/>
@@ -60,7 +59,6 @@
                   <bt:Image size="80" resid="Icon.80x80"/>
                 </Icon>
 
-                <!-- 사이드패널 열기 버튼 -->
                 <Control xsi:type="Button" id="TaskPaneButton">
                   <Label resid="TaskPaneButton.Label"/>
                   <Supertip>
@@ -78,7 +76,6 @@
                   </Action>
                 </Control>
 
-                <!-- 제목 일괄 적용 버튼 -->
                 <Control xsi:type="Button" id="ApplyTitleButton">
                   <Label resid="ApplyTitleButton.Label"/>
                   <Supertip>
@@ -95,7 +92,6 @@
                   </Action>
                 </Control>
 
-                <!-- 본문 일괄 적용 버튼 -->
                 <Control xsi:type="Button" id="ApplyBodyButton">
                   <Label resid="ApplyBodyButton.Label"/>
                   <Supertip>
@@ -120,14 +116,14 @@
 
     <Resources>
       <bt:Images>
-        <bt:Image id="Icon.16x16" DefaultValue="https://YOUR_GITHUB_ID.github.io/ppt-style-addin/assets/icon-16.png"/>
-        <bt:Image id="Icon.32x32" DefaultValue="https://YOUR_GITHUB_ID.github.io/ppt-style-addin/assets/icon-32.png"/>
-        <bt:Image id="Icon.80x80" DefaultValue="https://YOUR_GITHUB_ID.github.io/ppt-style-addin/assets/icon-80.png"/>
+        <bt:Image id="Icon.16x16" DefaultValue="https://ghost1236.github.io/ppt-style-addin/assets/icon-16.png"/>
+        <bt:Image id="Icon.32x32" DefaultValue="https://ghost1236.github.io/ppt-style-addin/assets/icon-32.png"/>
+        <bt:Image id="Icon.80x80" DefaultValue="https://ghost1236.github.io/ppt-style-addin/assets/icon-80.png"/>
       </bt:Images>
       <bt:Urls>
-        <bt:Url id="GetStarted.LearnMoreUrl" DefaultValue="https://YOUR_GITHUB_ID.github.io/ppt-style-addin/"/>
-        <bt:Url id="Commands.Url" DefaultValue="https://YOUR_GITHUB_ID.github.io/ppt-style-addin/commands/commands.html"/>
-        <bt:Url id="Taskpane.Url" DefaultValue="https://YOUR_GITHUB_ID.github.io/ppt-style-addin/taskpane/index.html"/>
+        <bt:Url id="GetStarted.LearnMoreUrl" DefaultValue="https://ghost1236.github.io/ppt-style-addin/"/>
+        <bt:Url id="Commands.Url" DefaultValue="https://ghost1236.github.io/ppt-style-addin/commands/commands.html"/>
+        <bt:Url id="Taskpane.Url" DefaultValue="https://ghost1236.github.io/ppt-style-addin/taskpane/index.html"/>
       </bt:Urls>
       <bt:ShortStrings>
         <bt:String id="GetStarted.Title" DefaultValue="디자인 도구를 시작합니다"/>
