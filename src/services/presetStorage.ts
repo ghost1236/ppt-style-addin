@@ -1,28 +1,25 @@
 import type { StylePreset } from '../store/useStore';
 
-const STORAGE_KEY = 'ppt-style-addin-presets';
+const LOCAL_PRESETS_KEY = 'ppt-style-addin-presets';
+const DOC_PRESETS_KEY = 'ppt-style-addin-doc-presets';
 const TITLE_PRESET_KEY = 'ppt-style-addin-title-preset-id';
 const BODY_PRESET_KEY = 'ppt-style-addin-body-preset-id';
 const SLOT_KEY_PREFIX = 'ppt-style-addin-slot-';
-const MODE_KEY = 'ppt-style-addin-storage-mode';
 
-/** 현재 저장 모드 */
-function getMode(): 'local' | 'document' {
-  return (localStorage.getItem(MODE_KEY) as 'local' | 'document') || 'local';
-}
-
-// ── localStorage 방식 ──
-
-function localSet(key: string, value: string) {
-  localStorage.setItem(key, value);
-}
+// ── localStorage (전역) ──
 
 function localGet(key: string): string | null {
-  return localStorage.getItem(key);
+  try { return localStorage.getItem(key); } catch { return null; }
+}
+function localSet(key: string, value: string) {
+  try { localStorage.setItem(key, value); } catch { /* ignore */ }
 }
 
-// ── Office document.settings 방식 ──
+// ── document.settings (파일별) ──
 
+function docGet(key: string): string | null {
+  try { return Office.context.document.settings.get(key) ?? null; } catch { return null; }
+}
 function docSet(key: string, value: string) {
   try {
     Office.context.document.settings.set(key, value);
@@ -30,46 +27,53 @@ function docSet(key: string, value: string) {
   } catch { /* ignore */ }
 }
 
-function docGet(key: string): string | null {
-  try {
-    return Office.context.document.settings.get(key) ?? null;
-  } catch {
-    return null;
-  }
+// ── 프리셋 저장/불러오기 (전역 + 파일별 합산) ──
+
+/** 전역 프리셋만 저장 */
+function saveLocalPresets(presets: StylePreset[]) {
+  const localPresets = presets.filter((p) => p.storage !== 'document');
+  localSet(LOCAL_PRESETS_KEY, JSON.stringify(localPresets));
 }
 
-// ── 통합 인터페이스 ──
-
-function storageSet(key: string, value: string) {
-  if (getMode() === 'document') {
-    docSet(key, value);
-  } else {
-    localSet(key, value);
-  }
+/** 파일별 프리셋만 저장 */
+function saveDocPresets(presets: StylePreset[]) {
+  const docPresets = presets.filter((p) => p.storage === 'document');
+  docSet(DOC_PRESETS_KEY, JSON.stringify(docPresets));
 }
 
-function storageGet(key: string): string | null {
-  if (getMode() === 'document') {
-    return docGet(key);
-  } else {
-    return localGet(key);
-  }
-}
-
-/** 프리셋 저장 */
+/** 프리셋 저장 (전역/파일별 분리 저장) */
 export async function savePresetsToSettings(presets: StylePreset[]): Promise<void> {
-  storageSet(STORAGE_KEY, JSON.stringify(presets));
+  saveLocalPresets(presets);
+  saveDocPresets(presets);
 }
 
-/** 프리셋 불러오기 */
+/** 프리셋 불러오기 (전역 + 파일별 합산) */
 export function loadPresetsFromSettings(): StylePreset[] {
+  const localPresets: StylePreset[] = [];
+  const docPresets: StylePreset[] = [];
+
   try {
-    const raw = storageGet(STORAGE_KEY);
-    if (!raw) return [];
-    return JSON.parse(raw) as StylePreset[];
-  } catch {
-    return [];
-  }
+    const localRaw = localGet(LOCAL_PRESETS_KEY);
+    if (localRaw) {
+      const parsed = JSON.parse(localRaw) as StylePreset[];
+      parsed.forEach((p) => { p.storage = 'local'; });
+      localPresets.push(...parsed);
+    }
+  } catch { /* ignore */ }
+
+  try {
+    const docRaw = docGet(DOC_PRESETS_KEY);
+    if (docRaw) {
+      const parsed = JSON.parse(docRaw) as StylePreset[];
+      parsed.forEach((p) => { p.storage = 'document'; });
+      docPresets.push(...parsed);
+    }
+  } catch { /* ignore */ }
+
+  // 중복 ID 제거 (파일별이 우선)
+  const ids = new Set(docPresets.map((p) => p.id));
+  const merged = [...docPresets, ...localPresets.filter((p) => !ids.has(p.id))];
+  return merged;
 }
 
 /** JSON 파일로 내보내기 */
@@ -113,28 +117,28 @@ export async function saveRibbonPresetIds(
   titlePresetId: string | null,
   bodyPresetId: string | null
 ): Promise<void> {
-  storageSet(TITLE_PRESET_KEY, titlePresetId ?? '');
-  storageSet(BODY_PRESET_KEY, bodyPresetId ?? '');
+  localSet(TITLE_PRESET_KEY, titlePresetId ?? '');
+  localSet(BODY_PRESET_KEY, bodyPresetId ?? '');
 }
 
 /** 리본 버튼용 프리셋 ID 불러오기 */
 export function loadRibbonPresetIds(): { titlePresetId: string | null; bodyPresetId: string | null } {
   return {
-    titlePresetId: storageGet(TITLE_PRESET_KEY) || null,
-    bodyPresetId: storageGet(BODY_PRESET_KEY) || null,
+    titlePresetId: localGet(TITLE_PRESET_KEY) || null,
+    bodyPresetId: localGet(BODY_PRESET_KEY) || null,
   };
 }
 
 /** 슬롯에 프리셋 ID 저장 */
 export async function saveSlotPresetId(slotIndex: number, presetId: string | null): Promise<void> {
-  storageSet(`${SLOT_KEY_PREFIX}${slotIndex}`, presetId ?? '');
+  localSet(`${SLOT_KEY_PREFIX}${slotIndex}`, presetId ?? '');
 }
 
 /** 슬롯 프리셋 ID 불러오기 */
 export function loadSlotPresetIds(): Record<number, string | null> {
   const slots: Record<number, string | null> = {};
   for (let i = 1; i <= 5; i++) {
-    slots[i] = storageGet(`${SLOT_KEY_PREFIX}${i}`) || null;
+    slots[i] = localGet(`${SLOT_KEY_PREFIX}${i}`) || null;
   }
   return slots;
 }

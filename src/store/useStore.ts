@@ -30,6 +30,8 @@ export interface StylePreset {
   name: string;
   font: FontStyle;
   paragraph?: ParagraphStyle;
+  /** 저장 위치: 'local'=전역, 'document'=파일별 */
+  storage?: 'local' | 'document';
 }
 
 /** 실행 취소를 위해 적용 전 스냅샷으로 저장하는 개별 shape의 스타일 */
@@ -63,9 +65,6 @@ interface StoreState {
   bodyPresetId: string | null;
   /** 리본 프리셋 슬롯 (1~5) */
   slotPresetIds: Record<number, string | null>;
-  /** 저장 방식: 'local'=전역, 'document'=파일별 */
-  storageMode: 'local' | 'document';
-
   setCurrentFont: (font: Partial<FontStyle>) => void;
   setCurrentParagraph: (para: Partial<ParagraphStyle>) => void;
   setApplyTarget: (target: ApplyTarget) => void;
@@ -82,7 +81,6 @@ interface StoreState {
   setBodyPresetId: (id: string | null) => void;
   setSlotPresetId: (slot: number, id: string | null) => void;
   setSlotPresetIds: (slots: Record<number, string | null>) => void;
-  setStorageMode: (mode: 'local' | 'document') => void;
 }
 
 export const useStore = create<StoreState>((set, get) => ({
@@ -107,7 +105,6 @@ export const useStore = create<StoreState>((set, get) => ({
   titlePresetId: null,
   bodyPresetId: null,
   slotPresetIds: { 1: null, 2: null, 3: null, 4: null, 5: null },
-  storageMode: (localStorage.getItem('ppt-style-addin-storage-mode') as 'local' | 'document') || 'local',
 
   setCurrentFont: (font) =>
     set((state) => ({ currentFont: { ...state.currentFont, ...font } })),
@@ -162,8 +159,4 @@ export const useStore = create<StoreState>((set, get) => ({
   setSlotPresetId: (slot, id) =>
     set((state) => ({ slotPresetIds: { ...state.slotPresetIds, [slot]: id } })),
   setSlotPresetIds: (slots) => set({ slotPresetIds: slots }),
-  setStorageMode: (mode) => {
-    localStorage.setItem('ppt-style-addin-storage-mode', mode);
-    set({ storageMode: mode });
-  },
 }));

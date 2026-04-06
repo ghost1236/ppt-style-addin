@@ -74,9 +74,10 @@ interface PresetCardProps {
   onAssignTitle: (id: string) => void;
   onAssignBody: (id: string) => void;
   onAssignSlot: (presetId: string, slot: number) => void;
+  onToggleStorage: (presetId: string) => void;
 }
 
-export function PresetCard({ preset, onApply, onDelete, onAssignTitle, onAssignBody, onAssignSlot }: PresetCardProps) {
+export function PresetCard({ preset, onApply, onDelete, onAssignTitle, onAssignBody, onAssignSlot, onToggleStorage }: PresetCardProps) {
   const styles = useStyles();
   const [showEditModal, setShowEditModal] = useState(false);
   const { titlePresetId, bodyPresetId, slotPresetIds } = useStore();
@@ -85,7 +86,10 @@ export function PresetCard({ preset, onApply, onDelete, onAssignTitle, onAssignB
     ([, id]) => id === preset.id
   )?.[0] ?? '';
 
+  const isLocal = preset.storage !== 'document';
+
   const badges: string[] = [];
+  badges.push(isLocal ? '전역' : '파일별');
   if (titlePresetId === preset.id) badges.push('제목');
   if (bodyPresetId === preset.id) badges.push('본문');
   const slotNum = assignedSlot ? Number(assignedSlot) : 0;
@@ -107,6 +111,15 @@ export function PresetCard({ preset, onApply, onDelete, onAssignTitle, onAssignB
             style={{ backgroundColor: preset.font.color || '#333', width: 12, height: 12 }}
           />
           <Text className={styles.name}>{preset.name}</Text>
+          <Button
+            size="small"
+            appearance="subtle"
+            onClick={() => onToggleStorage(preset.id)}
+            title={isLocal ? '전역 저장 (클릭하면 파일별로 변경)' : '파일별 저장 (클릭하면 전역으로 변경)'}
+            style={{ fontSize: '10px', minWidth: 0, padding: '0 4px' }}
+          >
+            {isLocal ? '전역' : '파일'}
+          </Button>
           <Button size="small" icon={<EditRegular />} onClick={() => setShowEditModal(true)} title="수정" />
           <Button size="small" icon={<DeleteRegular />} onClick={() => onDelete(preset.id)} title="삭제" />
         </div>

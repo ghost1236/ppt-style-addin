@@ -8,15 +8,11 @@ import {
   useToastController,
   Toaster,
   useId,
-  ToggleButton,
-  Divider,
 } from '@fluentui/react-components';
 import {
   AddRegular,
   ArrowExportRegular,
   ArrowImportRegular,
-  DatabaseRegular,
-  DocumentRegular,
 } from '@fluentui/react-icons';
 import { useStore } from '../../store/useStore';
 import { PresetCard } from './PresetCard';
@@ -50,18 +46,6 @@ const useStyles = makeStyles({
     borderTop: `1px solid ${tokens.colorNeutralStroke2}`,
     flexWrap: 'wrap',
   },
-  storageRow: {
-    display: 'flex',
-    gap: '4px',
-    alignItems: 'center',
-    paddingTop: '8px',
-    borderTop: `1px solid ${tokens.colorNeutralStroke2}`,
-  },
-  storageLabel: {
-    fontSize: tokens.fontSizeBase100,
-    color: tokens.colorNeutralForeground3,
-    marginRight: '4px',
-  },
 });
 
 export function PresetList() {
@@ -69,7 +53,7 @@ export function PresetList() {
   const toasterId = useId('preset-toaster');
   const { dispatchToast } = useToastController(toasterId);
   const [showNewModal, setShowNewModal] = useState(false);
-  const { presets, deletePreset, setPresets, applyTarget, currentFont, currentParagraph, loadPresetToEditor, titlePresetId, bodyPresetId, setTitlePresetId, setBodyPresetId, slotPresetIds, setSlotPresetId, storageMode, setStorageMode } = useStore();
+  const { presets, deletePreset, setPresets, updatePreset, applyTarget, currentFont, currentParagraph, loadPresetToEditor, titlePresetId, bodyPresetId, setTitlePresetId, setBodyPresetId, slotPresetIds, setSlotPresetId } = useStore();
 
   function showToast(msg: string, intent: 'success' | 'warning' | 'error' = 'success') {
     dispatchToast(
@@ -144,6 +128,20 @@ export function PresetList() {
     }
   }
 
+  async function handleToggleStorage(presetId: string) {
+    const preset = presets.find((p) => p.id === presetId);
+    if (!preset) return;
+    const newStorage = preset.storage === 'document' ? 'local' : 'document';
+    const updated = { ...preset, storage: newStorage as 'local' | 'document' };
+    updatePreset(updated);
+    const allPresets = presets.map((p) => p.id === presetId ? updated : p);
+    await savePresetsToSettings(allPresets).catch(console.error);
+    showToast(newStorage === 'local'
+      ? `"${preset.name}" → 전역 저장으로 변경`
+      : `"${preset.name}" → 파일별 저장으로 변경`
+    );
+  }
+
   async function handleImport() {
     try {
       const imported = await importPresetsFromJson();
@@ -174,6 +172,7 @@ export function PresetList() {
             onAssignTitle={handleAssignTitle}
             onAssignBody={handleAssignBody}
             onAssignSlot={handleAssignSlot}
+            onToggleStorage={handleToggleStorage}
           />
         ))
       )}
@@ -201,34 +200,6 @@ export function PresetList() {
         >
           불러오기
         </Button>
-      </div>
-
-      <div className={styles.storageRow}>
-        <Text className={styles.storageLabel}>저장 위치:</Text>
-        <ToggleButton
-          size="small"
-          checked={storageMode === 'local'}
-          onClick={() => {
-            setStorageMode('local');
-            showToast('전역 저장으로 변경 (모든 파일에서 공유)');
-          }}
-          icon={<DatabaseRegular />}
-          appearance={storageMode === 'local' ? 'primary' : 'outline'}
-        >
-          전역
-        </ToggleButton>
-        <ToggleButton
-          size="small"
-          checked={storageMode === 'document'}
-          onClick={() => {
-            setStorageMode('document');
-            showToast('파일별 저장으로 변경 (이 파일에서만 사용)');
-          }}
-          icon={<DocumentRegular />}
-          appearance={storageMode === 'document' ? 'primary' : 'outline'}
-        >
-          파일별
-        </ToggleButton>
       </div>
 
       {showNewModal && (
